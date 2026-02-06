@@ -1,6 +1,6 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
-import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
+import {Injectable, Inject} from '@nestjs/common';
+import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
+import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
 
 /**
  * Placeholder for ModuleRegistryService.
@@ -8,7 +8,7 @@ import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
  */
 @Injectable()
 export class ModuleRegistryService {
-    constructor(@Inject(LOG.LOGGER) private readonly _logger: ILogger) { }
+    constructor(@Inject(LOG.LOGGER) private readonly _logger: ILogger) {}
 
     /**
      * Checks if the event name is valid and its destination module is active.

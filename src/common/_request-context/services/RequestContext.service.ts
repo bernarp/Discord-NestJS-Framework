@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { AsyncLocalStorage } from 'async_hooks';
+import {Injectable} from '@nestjs/common';
+import {AsyncLocalStorage} from 'async_hooks';
 
 /**
  * Interface representing the structure of the Request Context.

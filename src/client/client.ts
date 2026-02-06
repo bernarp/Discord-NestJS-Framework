@@ -5,8 +5,10 @@ import {discordConfig} from '@common/config-env/index.js';
 import {IClient} from '@client/interfaces/client.interface.js';
 import type {InteractionsManager} from './interactions-manager.js';
 import {IINTERACTIONS_MANAGER_TOKEN} from '@/client/client.token.js';
+import {RequestContextService} from '@/common/_request-context/services/RequestContext.service.js';
 import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
 import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
+import {randomUUID} from 'crypto';
 
 /**
  * Injection token for Discord Client configurations.
@@ -23,6 +25,7 @@ export class BotClient implements IClient, OnModuleInit, OnModuleDestroy {
      * @param _config - Namespaced Discord configuration.
      * @param _options - Discord.js client options provided via Dependency Injection.
      * @param _interactionsManager - Manager for handling various interactions.
+     * @param _requestContext - Service for managing request-scoped data.
      * @param _logger - Custom logger instance.
      */
     constructor(
@@ -30,6 +33,7 @@ export class BotClient implements IClient, OnModuleInit, OnModuleDestroy {
         private readonly _config: ConfigType<typeof discordConfig>,
         @Inject(DISCORD_CLIENT_OPTIONS) private readonly _options: discord.ClientOptions,
         @Inject(IINTERACTIONS_MANAGER_TOKEN) private readonly _interactionsManager: InteractionsManager,
+        private readonly _requestContext: RequestContextService,
         @Inject(LOG.LOGGER) private readonly _logger: ILogger
     ) {
         this._client = new discord.Client(this._options);
@@ -125,7 +129,10 @@ export class BotClient implements IClient, OnModuleInit, OnModuleDestroy {
 
     private _registerInteractionHandler() {
         this._client.on(discord.Events.InteractionCreate, interaction => {
-            this._interactionsManager.handleInteraction(interaction);
+            const correlationId = randomUUID();
+            this._requestContext.run({correlationId}, () => {
+                this._interactionsManager.handleInteraction(interaction);
+            });
         });
     }
 }

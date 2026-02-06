@@ -1,6 +1,7 @@
 import { OnEvent as NestOnEvent } from '@nestjs/event-emitter';
 import { applyDecorators, UseInterceptors } from '@nestjs/common';
-import { EventContextInterceptor } from '@common/interceptors/event-context.interceptor.js';
+import { EventContextInterceptor } from '../interceptors/event-context.interceptor.js';
+import { LogMethod, LogLevel } from './log-method.decorator.js';
 
 /**
  * Enhanced replacement for @OnEvent that automatically restores the RequestContext.
@@ -12,5 +13,9 @@ export function Subscribe(eventName: string) {
     return applyDecorators(
         NestOnEvent(eventName, { async: true }),
         UseInterceptors(EventContextInterceptor),
+        LogMethod({
+            description: `Event Handle: ${eventName}`,
+            level: LogLevel.DEBUG
+        })
     );
 }

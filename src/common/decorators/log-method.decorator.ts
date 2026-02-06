@@ -1,5 +1,6 @@
 import {safeJsonStringify} from '@/common/utils/safe-json.util.js';
 import {LogLevel} from '@/common/_logger/enums/LogLevel.js';
+import {preserveMetadata} from '@/common/utils/decorator.util.js';
 
 export {LogLevel};
 
@@ -68,6 +69,8 @@ export function LogMethod(options: LogMethodOptions = {}): MethodDecorator {
                 handleError(error);
             }
         };
+
+        preserveMetadata(originalMethod, descriptor.value);
 
         return descriptor;
     };
