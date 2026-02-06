@@ -1,7 +1,7 @@
 import {Injectable, Inject} from '@nestjs/common';
 import {Subscribe} from '@/common/decorators/subscribe.decorator.js';
 import {Emits} from '@/common/decorators/emits.decorator.js';
-import {AppEvents} from '@/common/event-bus/events.dictionary.js';
+import {Events} from '@/common/event-bus/events.dictionary.js';
 import {BaseEvent} from '@/common/event-bus/base.event.js';
 import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
 import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
@@ -22,8 +22,8 @@ export class TestEvents2Service {
      *
      * @Emits will automatically take the return value and send it to Module A.
      */
-    @Subscribe(AppEvents.TEST_INIT)
-    @Emits(AppEvents.TEST_RESPONSE)
+    @Subscribe(Events.TEST_INIT)
+    @Emits(Events.TEST_RESPONSE)
     public async onModuleAInit(event: BaseEvent<any>): Promise<any> {
         this._logger.log(`[Module B] Received INIT event. Original CID: ${event.correlationId}`, 'TestEvents2Service');
         const responseData = {

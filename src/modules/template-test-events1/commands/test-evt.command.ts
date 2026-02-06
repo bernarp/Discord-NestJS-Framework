@@ -3,7 +3,7 @@ import {Injectable, Inject} from '@nestjs/common';
 import {CommandSlash, Emits} from '@/common/decorators/index.js';
 import {ICommand} from '@/client/interfaces/command.interface.js';
 import {CommandRegistrationType} from '@/client/enums/command-registration-type.enum.js';
-import {AppEvents} from '@/common/event-bus/events.dictionary.js';
+import {Events} from '@/common/event-bus/events.dictionary.js';
 import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
 import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
 
@@ -26,7 +26,7 @@ export class TestEvtCommand implements ICommand {
      * Executes the command and emits the initial event.
      * The @Emits decorator will wrap the return value and propagate the Correlation ID.
      */
-    @Emits(AppEvents.TEST_INIT)
+    @Emits(Events.TEST_INIT)
     public async execute(interaction: ChatInputCommandInteraction): Promise<any> {
         await interaction.reply({
             content: '**EDA Flow Started!** Check the console/logs for the trace.',

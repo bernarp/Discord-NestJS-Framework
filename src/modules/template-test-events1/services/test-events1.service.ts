@@ -1,6 +1,6 @@
 import {Injectable, Inject} from '@nestjs/common';
 import {Subscribe} from '@/common/decorators/subscribe.decorator.js';
-import {AppEvents} from '@/common/event-bus/events.dictionary.js';
+import {Events} from '@/common/event-bus/events.dictionary.js';
 import {BaseEvent} from '@/common/event-bus/base.event.js';
 import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
 import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
@@ -19,7 +19,7 @@ export class TestEvents1Service {
      * Handles the response from Module B.
      * Demonstrates that the Correlation ID has been preserved through the entire round-trip.
      */
-    @Subscribe(AppEvents.TEST_RESPONSE)
+    @Subscribe(Events.TEST_RESPONSE)
     public onModuleBResponse(event: BaseEvent<any>): void {
         this._logger.log(`[Module A] Received response from Module B. Context: ${JSON.stringify(event.payload)}`, 'TestEvents1Service');
 

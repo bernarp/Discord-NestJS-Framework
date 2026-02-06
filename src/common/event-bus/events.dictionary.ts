@@ -2,7 +2,7 @@
  * Dictionary of all system event names.
  * Using a centralized dictionary ensures consistency and prevents typos in decorators.
  */
-export const AppEvents = {
+export const Events = {
     /**
      * Initial test event sent from Module A to Module B.
      */
@@ -26,4 +26,4 @@ export const AppEvents = {
 /**
  * Type representing all possible event names from the dictionary.
  */
-export type AppEventName = (typeof AppEvents)[keyof typeof AppEvents] | string;
+export type AppEventName = (typeof Events)[keyof typeof Events] | string;
