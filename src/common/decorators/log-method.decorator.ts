@@ -1,11 +1,9 @@
-import { SetMetadata } from '@nestjs/common';
-import { LogLevel } from '@/common/_logger/enums/LogLevel.js';
+import {SetMetadata} from '@nestjs/common';
+import {LogLevel} from '@/common/_logger/enums/LogLevel.js';
 
-export { LogLevel };
-
+export {LogLevel};
 
 export const LOG_METHOD_KEY = 'LOG_METHOD_KEY';
-
 
 /**
  * Options for the method logging decorator.

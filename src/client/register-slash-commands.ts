@@ -12,6 +12,7 @@ import {LoggingInterceptor} from '@common/interceptors/logging.interceptor.js';
 import {LogMethod, LogLevel} from '@common/decorators/log-method.decorator.js';
 import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
 import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
+import {IDiscordCommandRegistrationDto} from './dto/discord-command-registration.dto.js';
 
 /**
  * Service responsible for discovering and registering slash commands with Discord API.
@@ -48,19 +49,22 @@ export class SlashCommandRegistrationService implements OnModuleInit {
     })
     private async registerCommands(): Promise<void> {
         const providers = this._discoveryService.getProviders();
-        const guildCommands: any[] = [];
-        const globalCommands: any[] = [];
+        const guildCommands: IDiscordCommandRegistrationDto[] = [];
+        const globalCommands: IDiscordCommandRegistrationDto[] = [];
 
         providers.forEach(wrapper => {
             const {instance} = wrapper;
             if (!instance || !instance.constructor) return;
+
             const metadata = this._reflector.get<CommandOptions>(COMMAND_METADATA, instance.constructor);
             if (!metadata) return;
+
             this._commandHandler.registerCommand(instance as unknown as ICommand);
-            const commandData = {
+
+            const commandData: IDiscordCommandRegistrationDto = {
                 name: metadata.name,
                 description: metadata.description,
-                options: metadata.options || [],
+                options: metadata.options,
                 default_member_permissions: metadata.defaultMemberPermissions?.toString(),
                 dm_permission: metadata.dmPermission
             };
@@ -88,7 +92,7 @@ export class SlashCommandRegistrationService implements OnModuleInit {
         logInput: true,
         logResult: true
     })
-    private async _uploadToDiscord(guildCommands: any[], globalCommands: any[]): Promise<void> {
+    private async _uploadToDiscord(guildCommands: IDiscordCommandRegistrationDto[], globalCommands: IDiscordCommandRegistrationDto[]): Promise<void> {
         const token = this._configService.get<string>('DISCORD_TOKEN');
         const clientId = this._configService.get<string>('CLIENT_ID');
         const guildId = this._configService.get<string>('GUILD_ID');
