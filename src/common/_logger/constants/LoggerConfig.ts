@@ -214,8 +214,5 @@ export function convertToMoscowTime(date: Date): Date {
  * @returns {boolean} true if color output is supported.
  */
 export function isColorOutputSupported(): boolean {
-    return !!(
-        process.stdout.isTTY &&
-        (process.env.COLORTERM || process.env.TERM === 'xterm' || process.env.TERM === 'xterm-256color' || process.env.TERM?.includes('color'))
-    );
+    return !!(process.stdout.isTTY && (process.env.COLORTERM || process.env.TERM === 'xterm' || process.env.TERM === 'xterm-256color' || process.env.TERM?.includes('color')));
 }

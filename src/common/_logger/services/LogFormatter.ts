@@ -140,12 +140,7 @@ export class LogFormatter implements ICustomLogger.ILogFormatter {
 
     private _formatContext(logEntry: ILogEntry): string {
         const {relativeFilePath, lineNumber, methodName, className} = logEntry.context;
-        if (
-            relativeFilePath.startsWith('node:internal') ||
-            relativeFilePath.includes('task_queues') ||
-            relativeFilePath.includes('timers.js') ||
-            relativeFilePath.includes('process/task_queues')
-        ) {
+        if (relativeFilePath.startsWith('node:internal') || relativeFilePath.includes('task_queues') || relativeFilePath.includes('timers.js') || relativeFilePath.includes('process/task_queues')) {
             if (logEntry.category) {
                 return logEntry.category;
             }

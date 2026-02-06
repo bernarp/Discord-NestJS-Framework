@@ -11,13 +11,7 @@ import {ButtonInteractionHandler} from './interactions/button-interaction.handle
 import {SelectMenuInteractionHandler} from './interactions/select-menu-interaction.handler.js';
 import {ModalInteractionHandler} from './interactions/modal-interaction.handler.js';
 import {SlashCommandRegistrationService} from './register-slash-commands.js';
-import {
-    ICOMMAND_HANDLER_TOKEN,
-    IBUTTON_HANDLER_TOKEN,
-    ISELECT_MENU_HANDLER_TOKEN,
-    IMODAL_HANDLER_TOKEN,
-    IINTERACTIONS_MANAGER_TOKEN
-} from '@/client/client.token.js';
+import {ICOMMAND_HANDLER_TOKEN, IBUTTON_HANDLER_TOKEN, ISELECT_MENU_HANDLER_TOKEN, IMODAL_HANDLER_TOKEN, IINTERACTIONS_MANAGER_TOKEN} from '@/client/client.token.js';
 
 /**
  * Global module responsible for managing the Discord Client lifecycle.
