@@ -15,7 +15,7 @@ builder.ts
 
 package-lock.json
 xenon-bastion-457821-k3-97abf377076a.json
-*.md
+
 *.txt
 *.log
 *.py
