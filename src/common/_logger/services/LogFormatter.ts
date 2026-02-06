@@ -1,7 +1,7 @@
-import {Injectable} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import * as ICustomLogger from '../interfaces/ICustomLogger.js';
-import {ILogEntry} from '../interfaces/ILogEntry.js';
-import {LOGGER_CONFIG, convertToMoscowTime, isColorOutputSupported, isErrorLevel} from '../constants/LoggerConfig.js';
+import { ILogEntry } from '../interfaces/ILogEntry.js';
+import { LOGGER_CONFIG, convertToMoscowTime, isColorOutputSupported, isErrorLevel } from '../constants/LoggerConfig.js';
 
 // Interface for the JSON log structure
 interface IJsonLogEntry {
@@ -101,7 +101,7 @@ export class LogFormatter implements ICustomLogger.ILogFormatter {
     }
 
     private _applyColors(message: string, logEntry: ILogEntry): string {
-        const {COLORS, LEVEL_COLORS} = LOGGER_CONFIG;
+        const { COLORS, LEVEL_COLORS } = LOGGER_CONFIG;
         const level = logEntry.level;
 
         if (isErrorLevel(level)) {
@@ -136,7 +136,24 @@ export class LogFormatter implements ICustomLogger.ILogFormatter {
     }
 
     private _formatContext(logEntry: ILogEntry): string {
-        const {relativeFilePath, lineNumber} = logEntry.context;
+        const { relativeFilePath, lineNumber, methodName, className } = logEntry.context;
+        if (
+            relativeFilePath.startsWith('node:internal') ||
+            relativeFilePath.includes('task_queues') ||
+            relativeFilePath.includes('timers.js') ||
+            relativeFilePath.includes('process/task_queues')
+        ) {
+            if (logEntry.category) {
+                return logEntry.category;
+            }
+            if (className && methodName) {
+                return `${className}.${methodName}`;
+            }
+            if (methodName) {
+                return methodName;
+            }
+            return 'AsyncCallback';
+        }
 
         if (relativeFilePath === LOGGER_CONFIG.DEFAULTS.CONTEXT_UNKNOWN) {
             return logEntry.category || LOGGER_CONFIG.DEFAULTS.CONTEXT_UNKNOWN;
@@ -144,4 +161,5 @@ export class LogFormatter implements ICustomLogger.ILogFormatter {
 
         return `${relativeFilePath}:${lineNumber}`;
     }
+
 }
