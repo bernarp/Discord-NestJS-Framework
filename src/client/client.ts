@@ -1,9 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
+import {Injectable, Logger, OnModuleInit, OnModuleDestroy, Inject} from '@nestjs/common';
 import * as discord from 'discord.js';
-import { ConfigService } from '@nestjs/config';
-import { IClient } from '@client/interfaces/client.interface.js';
-import type { InteractionsManager } from './interactions-manager.js';
-import { IINTERACTIONS_MANAGER_TOKEN } from '@/client/client.token.js';
+import {ConfigService} from '@nestjs/config';
+import {IClient} from '@client/interfaces/client.interface.js';
+import type {InteractionsManager} from './interactions-manager.js';
+import {IINTERACTIONS_MANAGER_TOKEN} from '@/client/client.token.js';
 
 /**
  * Injection token for Discord Client configurations.

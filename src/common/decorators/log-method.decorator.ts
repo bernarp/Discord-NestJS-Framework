@@ -1,4 +1,4 @@
-import { SetMetadata } from '@nestjs/common';
+import {SetMetadata} from '@nestjs/common';
 
 export const LOG_METHOD_KEY = 'LOG_METHOD_KEY';
 

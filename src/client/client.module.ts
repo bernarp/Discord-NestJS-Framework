@@ -1,5 +1,6 @@
 import {Global, Module} from '@nestjs/common';
 import {ConfigModule} from '@nestjs/config';
+import {DiscoveryModule} from '@nestjs/core';
 import {BotClient} from './client.js';
 import {discordOptionsProvider} from '@client/discord-options-intents.js';
 import {ICLIENT_TOKEN} from '@/client/client.token.js';
@@ -9,6 +10,7 @@ import {CommandInteractionHandler} from './interactions/command-interaction.hand
 import {ButtonInteractionHandler} from './interactions/button-interaction.handler.js';
 import {SelectMenuInteractionHandler} from './interactions/select-menu-interaction.handler.js';
 import {ModalInteractionHandler} from './interactions/modal-interaction.handler.js';
+import {SlashCommandRegistrationService} from './register-slash-commands.js';
 import {
     ICOMMAND_HANDLER_TOKEN,
     IBUTTON_HANDLER_TOKEN,
@@ -23,7 +25,7 @@ import {
  */
 @Global()
 @Module({
-    imports: [ConfigModule],
+    imports: [ConfigModule, DiscoveryModule],
     providers: [
         discordOptionsProvider,
         InteractionsManager,
@@ -32,6 +34,7 @@ import {
         ButtonInteractionHandler,
         SelectMenuInteractionHandler,
         ModalInteractionHandler,
+        SlashCommandRegistrationService,
         {
             provide: ICLIENT_TOKEN,
             useExisting: BotClient

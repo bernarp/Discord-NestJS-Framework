@@ -1,4 +1,4 @@
-import { ApplicationCommandOptionType } from 'discord.js';
+import {ApplicationCommandOptionType} from 'discord.js';
 
 /**
  * Wrapper over Discord option types to isolate business logic from library dependencies.
