@@ -1,33 +1,36 @@
-import {Injectable, Logger} from '@nestjs/common';
+import {Injectable, Inject} from '@nestjs/common';
 import {ChatInputCommandInteraction, AutocompleteInteraction} from 'discord.js';
 import {ICommandHandler} from '../interfaces/command-handler.interface.js';
 import {ICommand} from '../interfaces/command.interface.js';
+import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
+import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
 
 /**
  * Specialized handler for processing all slash command interactions.
  */
 @Injectable()
 export class CommandInteractionHandler implements ICommandHandler {
-    private readonly logger = new Logger(CommandInteractionHandler.name);
-    private readonly commands = new Map<string, ICommand>();
+    private readonly _commands = new Map<string, ICommand>();
+
+    constructor(@Inject(LOG.LOGGER) private readonly _logger: ILogger) {}
 
     /**
      * Executes the appropriate command based on the interaction's command name.
      * @param interaction The chat input command interaction.
      */
     public async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-        const command = this.commands.get(interaction.commandName);
+        const command = this._commands.get(interaction.commandName);
 
         if (command) {
             try {
                 await command.execute(interaction);
             } catch (error) {
                 const err = error as Error;
-                this.logger.error(`Error executing command ${interaction.commandName}: ${err.message}`, err.stack);
+                this._logger.error(`Error executing command ${interaction.commandName}: ${err.message}`, err.stack);
                 throw error;
             }
         } else {
-            this.logger.warn(`Received unknown command: ${interaction.commandName}`);
+            this._logger.warn(`Received unknown command: ${interaction.commandName}`);
         }
     }
 
@@ -36,7 +39,7 @@ export class CommandInteractionHandler implements ICommandHandler {
      * @param interaction The autocomplete interaction.
      */
     public async autocomplete(interaction: AutocompleteInteraction): Promise<void> {
-        const command = this.commands.get(interaction.commandName);
+        const command = this._commands.get(interaction.commandName);
         if (command && command.autocomplete) {
             await command.autocomplete(interaction);
         }
@@ -47,7 +50,7 @@ export class CommandInteractionHandler implements ICommandHandler {
      * @param command The command to register.
      */
     public registerCommand(command: ICommand): void {
-        this.commands.set(command.name, command);
-        this.logger.debug(`Registered entity command: ${command.name}`);
+        this._commands.set(command.name, command);
+        this._logger.debug(`Registered entity command: ${command.name}`);
     }
 }

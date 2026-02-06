@@ -5,6 +5,8 @@ import {ClientModule} from './client/client.module.js';
 import {APP_INTERCEPTOR} from '@nestjs/core';
 import {LoggingInterceptor} from './common/interceptors/logging.interceptor.js';
 
+import {LoggerModule} from './common/_logger/Logger.module.js';
+
 /**
  * Root Application Module.
  * Orchestrates global configurations and feature modules.
@@ -15,8 +17,10 @@ import {LoggingInterceptor} from './common/interceptors/logging.interceptor.js';
             isGlobal: true,
             envFilePath: '.env'
         }),
+        LoggerModule,
         ClientModule
     ],
+
     controllers: [],
     providers: [
         {

@@ -1,13 +1,17 @@
-import { Injectable, OnModuleInit, Logger, Inject } from '@nestjs/common';
-import { DiscoveryService, Reflector } from '@nestjs/core';
-import { ConfigService } from '@nestjs/config';
-import { REST, Routes } from 'discord.js';
-import { COMMAND_METADATA } from '@common/decorators/keys.js';
-import { CommandOptions } from '@common/decorators/command.schema.js';
-import { CommandRegistrationType } from '@client/enums/command-registration-type.enum.js';
-import type { ICommand } from '@client/interfaces/command.interface.js';
-import { ICOMMAND_HANDLER_TOKEN } from '@client/client.token.js';
-import type { ICommandHandler } from '@client/interfaces/command-handler.interface.js';
+import {Injectable, OnModuleInit, Logger, Inject, UseInterceptors} from '@nestjs/common';
+import {DiscoveryService, Reflector} from '@nestjs/core';
+import {ConfigService} from '@nestjs/config';
+import {REST, Routes} from 'discord.js';
+import {COMMAND_METADATA} from '@common/decorators/keys.js';
+import {CommandOptions} from '@common/decorators/command.schema.js';
+import {CommandRegistrationType} from '@client/enums/command-registration-type.enum.js';
+import type {ICommand} from '@client/interfaces/command.interface.js';
+import {ICOMMAND_HANDLER_TOKEN} from '@client/client.token.js';
+import type {ICommandHandler} from '@client/interfaces/command-handler.interface.js';
+import {LoggingInterceptor} from '@common/interceptors/logging.interceptor.js';
+import {LogMethod, LogLevel} from '@common/decorators/log-method.decorator.js';
+import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
+import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
 
 /**
  * Service responsible for discovering and registering slash commands with Discord API.
@@ -17,15 +21,15 @@ import type { ICommandHandler } from '@client/interfaces/command-handler.interfa
  * It also registers command instances in the CommandInteractionHandler for routing.
  */
 @Injectable()
+@UseInterceptors(LoggingInterceptor)
 export class SlashCommandRegistrationService implements OnModuleInit {
-    private readonly _logger = new Logger(SlashCommandRegistrationService.name);
-
     constructor(
         private readonly _discoveryService: DiscoveryService,
         private readonly _reflector: Reflector,
         private readonly _configService: ConfigService,
-        @Inject(ICOMMAND_HANDLER_TOKEN) private readonly _commandHandler: ICommandHandler
-    ) { }
+        @Inject(ICOMMAND_HANDLER_TOKEN) private readonly _commandHandler: ICommandHandler,
+        @Inject(LOG.LOGGER) private readonly _logger: ILogger
+    ) {}
 
     /**
      * NestJS Lifecycle Hook: Triggered after all modules are initialized.
@@ -37,13 +41,18 @@ export class SlashCommandRegistrationService implements OnModuleInit {
     /**
      * Scans for @CommandSlash metadata and processes registration.
      */
+    @LogMethod({
+        description: 'Discover and register commands locally',
+        level: LogLevel.DEBUG,
+        logInput: false
+    })
     private async registerCommands(): Promise<void> {
         const providers = this._discoveryService.getProviders();
         const guildCommands: any[] = [];
         const globalCommands: any[] = [];
 
         providers.forEach(wrapper => {
-            const { instance } = wrapper;
+            const {instance} = wrapper;
             if (!instance || !instance.constructor) return;
             const metadata = this._reflector.get<CommandOptions>(COMMAND_METADATA, instance.constructor);
             if (!metadata) return;
@@ -73,6 +82,12 @@ export class SlashCommandRegistrationService implements OnModuleInit {
      * @param guildCommands List of commands for Guild registration.
      * @param globalCommands List of commands for Global registration.
      */
+    @LogMethod({
+        description: 'Upload commands to Discord API',
+        level: LogLevel.DEBUG,
+        logInput: true,
+        logResult: true
+    })
     private async _uploadToDiscord(guildCommands: any[], globalCommands: any[]): Promise<void> {
         const token = this._configService.get<string>('DISCORD_TOKEN');
         const clientId = this._configService.get<string>('CLIENT_ID');
@@ -83,12 +98,12 @@ export class SlashCommandRegistrationService implements OnModuleInit {
             return;
         }
 
-        const rest = new REST({ version: '10' }).setToken(token);
+        const rest = new REST({version: '10'}).setToken(token);
 
         try {
             if (globalCommands.length > 0) {
                 this._logger.log(`Registering ${globalCommands.length} global commands...`);
-                await rest.put(Routes.applicationCommands(clientId), { body: globalCommands });
+                await rest.put(Routes.applicationCommands(clientId), {body: globalCommands});
                 this._logger.log('Successfully registered global commands.');
             }
 
@@ -98,7 +113,7 @@ export class SlashCommandRegistrationService implements OnModuleInit {
                     return;
                 }
                 this._logger.log(`Registering ${guildCommands.length} guild commands to guild ${guildId}...`);
-                await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: guildCommands });
+                await rest.put(Routes.applicationGuildCommands(clientId, guildId), {body: guildCommands});
                 this._logger.log('Successfully registered guild commands.');
             }
         } catch (error) {
