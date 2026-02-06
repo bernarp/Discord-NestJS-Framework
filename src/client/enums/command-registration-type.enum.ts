@@ -6,11 +6,11 @@ export enum CommandRegistrationType {
      * Registered only for a specific guild (developer server).
      * Faster updates, useful for development.
      */
-    GUILD = 'GUILD',
+    GUILD = '0',
 
     /**
      * Registered globally across all guilds.
      * Can take up to an hour to propagate.
      */
-    GLOBAL = 'GLOBAL'
+    GLOBAL = '1'
 }

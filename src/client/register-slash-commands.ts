@@ -22,7 +22,6 @@ import { IDiscordCommandRegistrationDto } from './dto/discord-command-registrati
  */
 @Injectable()
 export class SlashCommandRegistrationService implements OnModuleInit {
-
     constructor(
         private readonly _discoveryService: DiscoveryService,
         private readonly _reflector: Reflector,
@@ -44,7 +43,8 @@ export class SlashCommandRegistrationService implements OnModuleInit {
     @LogMethod({
         description: 'Discover and register commands locally',
         level: LogLevel.DEBUG,
-        logInput: false
+        logInput: false,
+        logResult: true
     })
     private async registerCommands(): Promise<void> {
         const providers = this._discoveryService.getProviders();

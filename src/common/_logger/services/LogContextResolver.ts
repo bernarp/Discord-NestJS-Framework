@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import {Injectable} from '@nestjs/common';
 import * as stackTrace from 'stack-trace';
 import * as path from 'path';
 import * as ICustomLogger from '../interfaces/ICustomLogger.js';
-import { ILogContext } from '../interfaces/ILogEntry.js';
-import { LOGGER_CONFIG } from '../constants/LoggerConfig.js';
+import {ILogContext} from '../interfaces/ILogEntry.js';
+import {LOGGER_CONFIG} from '../constants/LoggerConfig.js';
 
 type CallSite = ReturnType<typeof stackTrace.get>[number];
 
@@ -98,11 +98,7 @@ export class LogContextResolver implements ICustomLogger.ILogContextResolver {
             .replace(/\\/g, '/')
             .toLowerCase();
 
-        const skipPatterns = [
-            'common/_logger',
-            'common/decorators',
-            'node_modules'
-        ];
+        const skipPatterns = ['common/_logger', 'common/decorators', 'node_modules'];
         const shouldSkip = skipPatterns.some(pattern => normalizedPath.includes(pattern));
         return !shouldSkip;
     }

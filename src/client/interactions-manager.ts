@@ -15,12 +15,11 @@ import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
  */
 @Injectable()
 export class InteractionsManager implements IInteractionsManager {
-
     constructor(
-        @Optional() @Inject(ICOMMAND_HANDLER_TOKEN) private _commandHandler: ICommandHandler | undefined,
-        @Optional() @Inject(IBUTTON_HANDLER_TOKEN) private _buttonHandler: IButtonHandler | undefined,
-        @Optional() @Inject(ISELECT_MENU_HANDLER_TOKEN) private _selectMenuHandler: ISelectMenuHandler | undefined,
-        @Optional() @Inject(IMODAL_HANDLER_TOKEN) private _modalHandler: IModalHandler | undefined,
+        @Optional() @Inject(ICOMMAND_HANDLER_TOKEN) private _commandHandler: ICommandHandler,
+        @Optional() @Inject(IBUTTON_HANDLER_TOKEN) private _buttonHandler: IButtonHandler,
+        @Optional() @Inject(ISELECT_MENU_HANDLER_TOKEN) private _selectMenuHandler: ISelectMenuHandler,
+        @Optional() @Inject(IMODAL_HANDLER_TOKEN) private _modalHandler: IModalHandler,
         @Inject(LOG.LOGGER) private readonly _logger: ILogger
     ) { }
 
@@ -32,7 +31,7 @@ export class InteractionsManager implements IInteractionsManager {
     @LogMethod({
         description: 'Global interaction entry point',
         level: LogLevel.DEBUG,
-        logInput: false
+        logInput: true
     })
     public async handleInteraction(interaction: Interaction): Promise<void> {
         try {

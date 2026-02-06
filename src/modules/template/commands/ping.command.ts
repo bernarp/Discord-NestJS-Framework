@@ -22,14 +22,11 @@ export class PingCommand implements ICommand {
 
     constructor(@Inject(LOG.LOGGER) private readonly _logger: ILogger) { }
 
-
     /**
      * Entry point for the /ping command.
      * Routes the interaction to the appropriate subcommand handler defined with @SubCommand.
      */
-    @LogMethod({ description: 'Ping command entry' })
     public async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-
         const subCommandName = interaction.options.getSubcommand(false);
 
         if (!subCommandName) {
@@ -66,9 +63,7 @@ export class PingCommand implements ICommand {
         name: 'simple',
         description: 'Basic connectivity check'
     })
-    @LogMethod()
     public async onSimplePing(interaction: ChatInputCommandInteraction): Promise<void> {
-
         const latency = Date.now() - interaction.createdTimestamp;
         await interaction.reply({
             content: `Pong! Latency: \`${latency}ms\`.`,
@@ -84,9 +79,7 @@ export class PingCommand implements ICommand {
         name: 'info',
         description: 'Detailed system information'
     })
-    @LogMethod()
     public async onInfoPing(interaction: ChatInputCommandInteraction): Promise<void> {
-
         const latency = Date.now() - interaction.createdTimestamp;
         const apiLatency = interaction.client.ws.ping;
         const uptime = process.uptime();
@@ -96,7 +89,8 @@ export class PingCommand implements ICommand {
         const seconds = Math.floor(uptime % 60);
 
         await interaction.reply({
-            content: `**System Status**\n` +
+            content:
+                `**System Status**\n` +
                 `- Bot Latency: \`${latency}ms\`\n` +
                 `- API Latency: \`${apiLatency}ms\`\n` +
                 `- Uptime: \`${hours}h ${minutes}m ${seconds}s\`\n` +

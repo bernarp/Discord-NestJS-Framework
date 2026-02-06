@@ -1,6 +1,6 @@
-import { LoggerService } from '@nestjs/common';
-import { LogLevel } from '../enums/LogLevel.js';
-import { ILogEntry, ILogContext } from './ILogEntry.js';
+import {LoggerService} from '@nestjs/common';
+import {LogLevel} from '../enums/LogLevel.js';
+import {ILogEntry, ILogContext} from './ILogEntry.js';
 
 /**
  * @interface ILogContextResolver

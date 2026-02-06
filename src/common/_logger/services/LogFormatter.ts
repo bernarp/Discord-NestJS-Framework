@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import {Injectable} from '@nestjs/common';
 import * as ICustomLogger from '../interfaces/ICustomLogger.js';
-import { ILogEntry } from '../interfaces/ILogEntry.js';
-import { LOGGER_CONFIG, convertToMoscowTime, isColorOutputSupported, isErrorLevel } from '../constants/LoggerConfig.js';
+import {ILogEntry} from '../interfaces/ILogEntry.js';
+import {LOGGER_CONFIG, convertToMoscowTime, isColorOutputSupported, isErrorLevel} from '../constants/LoggerConfig.js';
 
 // Interface for the JSON log structure
 interface IJsonLogEntry {
@@ -42,14 +42,12 @@ export class LogFormatter implements ICustomLogger.ILogFormatter {
             baseMessage += ` ${metadataStr}`;
         }
 
-
         if (!this._colorsEnabled) {
             return baseMessage;
         }
 
         return this._applyColors(baseMessage, logEntry);
     }
-
 
     /**
      * Formats a log entry into a JSON string for file recording.
@@ -106,7 +104,7 @@ export class LogFormatter implements ICustomLogger.ILogFormatter {
     }
 
     private _applyColors(message: string, logEntry: ILogEntry): string {
-        const { COLORS, LEVEL_COLORS } = LOGGER_CONFIG;
+        const {COLORS, LEVEL_COLORS} = LOGGER_CONFIG;
         const level = logEntry.level;
 
         if (isErrorLevel(level)) {
@@ -141,7 +139,7 @@ export class LogFormatter implements ICustomLogger.ILogFormatter {
     }
 
     private _formatContext(logEntry: ILogEntry): string {
-        const { relativeFilePath, lineNumber, methodName, className } = logEntry.context;
+        const {relativeFilePath, lineNumber, methodName, className} = logEntry.context;
         if (
             relativeFilePath.startsWith('node:internal') ||
             relativeFilePath.includes('task_queues') ||
@@ -166,5 +164,4 @@ export class LogFormatter implements ICustomLogger.ILogFormatter {
 
         return `${relativeFilePath}:${lineNumber}`;
     }
-
 }

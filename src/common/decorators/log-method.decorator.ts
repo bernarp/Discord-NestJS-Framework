@@ -1,180 +1,93 @@
-import { inspect } from 'util';
+import { safeJsonStringify } from '@/common/utils/safe-json.util.js';
 import { LogLevel } from '@/common/_logger/enums/LogLevel.js';
-import type { Interaction } from 'discord.js';
 
 export { LogLevel };
 
-/**
- * Options for the method logging decorator.
- */
 export interface LogMethodOptions {
-    /** Whether to log incoming arguments. */
+    /** Whether to log input arguments? (Default: true) */
     logInput?: boolean;
-    /** Whether to log the execution result. */
+    /** Whether to log the result? (Default: true) */
     logResult?: boolean;
-    /** Action description for logs (used as prefix) */
-    description?: string;
-    /** Logging level (defaults to DEBUG) */
+    /** Log level (Default: DEBUG) */
     level?: LogLevel;
-    /** If true, hides raw arguments from logs (useful for sensitive data) */
-    hideArgs?: boolean;
+    /** Method description (optional) */
+    description?: string;
 }
 
 /**
  * Decorator for automatic method call logging.
- * Works standalone by wrapping the method execution.
- * 
- * Automatically extracts Discord Interaction metadata when present.
- * 
- * Requirement: The class instance must have a '_logger' property 
- * implementing at least basic logging methods.
- *
- * @param options Logging settings.
+ * Safely serializes arguments and results to single-line JSON.
  */
 export function LogMethod(options: LogMethodOptions = {}): MethodDecorator {
     const {
         level = LogLevel.DEBUG,
         logInput = true,
         logResult = true,
-        description,
-        hideArgs = false
+        description
     } = options;
 
     return (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
         const originalMethod = descriptor.value;
         const methodName = String(propertyKey);
         const className = target.constructor.name;
-        const context = `${className}.${methodName}`;
+        const contextStr = `${className}.${methodName}`;
+        const msgPrefix = description ? `[${description}] ` : '';
 
         descriptor.value = function (...args: any[]) {
             const logger = (this as any)._logger;
-            if (!logger) {
-                return originalMethod.apply(this, args);
-            }
+
+            if (!logger) return originalMethod.apply(this, args);
+
             const startTime = Date.now();
-            const meta = extractInteractionMeta(args);
-            const hasMeta = Object.keys(meta).length > 0;
-            const entryMsg = description || 'Called';
-            if (logInput) {
-                const logData: any = { ...meta };
-                if (!hideArgs && !hasInteraction(args)) {
-                    logData.args = sanitize(args);
-                }
 
-                logger.logWithLevel(level, entryMsg, context, logData);
+            if (logInput) {
+                const argsJson = safeJsonStringify(args);
+
+                logger.logWithLevel(
+                    level,
+                    `${msgPrefix}Called`,
+                    contextStr,
+                    { args: argsJson }
+                );
             }
 
-            const logCompletion = (resultOrError: any, isError: boolean) => {
-                const duration = Date.now() - startTime;
-                const resultMsg = `Finished in ${duration}ms`;
+            const handleResult = (result: any) => {
+                if (logResult) {
+                    const duration = Date.now() - startTime;
+                    const resultJson = safeJsonStringify(result);
 
-                if (isError) {
-                    logger.err(
-                        resultMsg,
-                        resultOrError instanceof Error ? resultOrError : String(resultOrError),
-                        context
+                    logger.logWithLevel(
+                        level,
+                        `${msgPrefix}Finished (+${duration}ms)`,
+                        contextStr,
+                        { result: resultJson }
                     );
-                } else if (logResult) {
-                    const resultMeta = typeof resultOrError === 'object' ? 'Object(...)' : resultOrError;
-                    if (resultMeta !== 'Object(...)') {
-                        logger.logWithLevel(level, resultMsg, context, { result: resultMeta });
-                    } else {
-                        logger.logWithLevel(level, resultMsg, context);
-                    }
                 }
+                return result;
             };
 
-
+            const handleError = (error: any) => {
+                const duration = Date.now() - startTime;
+                logger.err(
+                    `${msgPrefix}Failed (+${duration}ms)`,
+                    error,
+                    contextStr
+                );
+                throw error;
+            };
 
             try {
                 const result = originalMethod.apply(this, args);
 
                 if (result instanceof Promise) {
-                    return result
-                        .then((res) => {
-                            logCompletion(res, false);
-                            return res;
-                        })
-                        .catch((err) => {
-                            logCompletion(err, true);
-                            throw err;
-                        });
+                    return result.then(handleResult).catch(handleError);
                 }
-
-                logCompletion(result, false);
-                return result;
+                return handleResult(result);
             } catch (error) {
-                logCompletion(error, true);
-                throw error;
+                handleError(error);
             }
         };
 
         return descriptor;
     };
-}
-
-/**
- * Checks if any argument is a Discord Interaction (duck typing).
- */
-function hasInteraction(args: any[]): boolean {
-    return args.some(arg => isInteraction(arg));
-}
-
-/**
- * Type guard for Discord Interaction.
- */
-function isInteraction(arg: any): arg is Interaction {
-    return arg && typeof arg === 'object' && 'user' in arg && 'type' in arg;
-}
-
-/**
- * Extracts useful metadata from Discord Interaction.
- */
-function extractInteractionMeta(args: any[]): Record<string, any> {
-    const interaction = args.find(arg => isInteraction(arg));
-    if (!interaction) return {};
-
-    const meta: Record<string, any> = {
-        user: `${interaction.user.username} (${interaction.user.id})`,
-        type: interaction.type
-    };
-
-    if (interaction.guild) {
-        meta.guild = `${interaction.guild.name} (${interaction.guildId})`;
-    } else {
-        meta.context = 'DM';
-    }
-
-    if (interaction.isCommand?.()) {
-        meta.command = interaction.commandName;
-        try {
-            const options = (interaction as any).options?.data;
-            if (options && options.length > 0) {
-                meta.options = options.map((opt: any) => `${opt.name}:${opt.value}`);
-            }
-        } catch {
-        }
-    }
-
-    if (interaction.isButton?.()) {
-        meta.customId = (interaction as any).customId;
-    }
-
-    if (interaction.isStringSelectMenu?.()) {
-        meta.customId = (interaction as any).customId;
-        meta.values = (interaction as any).values;
-    }
-
-    return meta;
-}
-
-/**
- * Sanitizes arguments for safe logging.
- */
-function sanitize(args: any[]): string {
-    try {
-        return inspect(args, { depth: 1, colors: false, compact: true, breakLength: Infinity });
-    } catch {
-        return '[Unserializable]';
-    }
 }
