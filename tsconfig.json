@@ -1,0 +1,33 @@
+{
+    "compilerOptions": {
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "target": "ES2022",
+        "lib": ["ES2022"],
+        "outDir": "./dist",
+        "baseUrl": "./",
+        "paths": {
+            "@/*": ["src/*"],
+            "@client/*": ["src/client/*"],
+            "@common/*": ["src/common/*"],
+            "@modules/*": ["src/modules/*"],
+            "@web/*": ["src/web/*"],
+            "@decorators/*": ["src/common/decorators/*"],
+            "@interceptors/*": ["src/common/interceptor/*"],
+            "@middleware/*": ["src/common/middleware/*"]
+        },
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "noUncheckedIndexedAccess": true,
+        "isolatedModules": true,
+        "moduleDetection": "force",
+        "declaration": true,
+        "sourceMap": true
+    },
+    "include": ["main.ts", "src/**/*"],
+    "exclude": ["node_modules", "dist"]
+}
