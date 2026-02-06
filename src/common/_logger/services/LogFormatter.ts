@@ -36,8 +36,12 @@ export class LogFormatter implements ICustomLogger.ILogFormatter {
         const message = logEntry.message;
         const correlationIdStr = logEntry.correlationId ? ` | ${logEntry.correlationId.substring(0, 8)}` : '';
         const fullContext = `[${context}${correlationIdStr}]`;
+        let baseMessage = `${LOGGER_CONFIG.SYSTEM.LOGGER_PREFIX} - ${timestamp}   ${level}   ${fullContext} ${message}`;
+        if (logEntry.metadata && Object.keys(logEntry.metadata).length > 0) {
+            const metadataStr = JSON.stringify(logEntry.metadata);
+            baseMessage += ` ${metadataStr}`;
+        }
 
-        const baseMessage = `${LOGGER_CONFIG.SYSTEM.LOGGER_PREFIX} - ${timestamp}   ${level}   ${fullContext} ${message}`;
 
         if (!this._colorsEnabled) {
             return baseMessage;
@@ -45,6 +49,7 @@ export class LogFormatter implements ICustomLogger.ILogFormatter {
 
         return this._applyColors(baseMessage, logEntry);
     }
+
 
     /**
      * Formats a log entry into a JSON string for file recording.
