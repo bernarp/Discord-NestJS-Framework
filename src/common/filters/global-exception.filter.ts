@@ -1,13 +1,13 @@
 import * as Nest from '@nestjs/common';
-import {BaseInteraction} from 'discord.js';
-import {HttpAdapterHost} from '@nestjs/core';
-import {BotException} from '@/common/exceptions/bot.exception.js';
-import {RequestContextService} from '@/common/_request-context/services/RequestContext.service.js';
-import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
-import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
-import {LogMethod, LogLevel} from '@/common/decorators/log-method.decorator.js';
-import {ExceptionFormatterService} from './services/exception-formatter.service.js';
-import {DiscordErrorResponseService} from './services/discord-error-response.service.js';
+import { BaseInteraction } from 'discord.js';
+import { HttpAdapterHost } from '@nestjs/core';
+import { BotException } from '@/common/exceptions/bot.exception.js';
+import { RequestContextService } from '@/common/_request-context/services/RequestContext.service.js';
+import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
+import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
+import { LogMethod, LogLevel } from '@/common/decorators/log-method.decorator.js';
+import { ExceptionFormatterService } from './services/exception-formatter.service.js';
+import { DiscordErrorResponseService } from './services/discord-error-response.service.js';
 
 /**
  * @class GlobalExceptionFilter
@@ -34,7 +34,7 @@ export class GlobalExceptionFilter implements Nest.ExceptionFilter {
         private readonly _discordResponse: DiscordErrorResponseService,
         @Nest.Inject(LOG.LOGGER) private readonly _logger: ILogger,
         @Nest.Optional() private readonly _httpAdapterHost?: HttpAdapterHost
-    ) {}
+    ) { }
 
     /**
      * @method catch
@@ -44,7 +44,7 @@ export class GlobalExceptionFilter implements Nest.ExceptionFilter {
      */
     @LogMethod({
         level: LogLevel.ERROR,
-        description: 'Exception Filter Catch'
+        description: 'Exception Filter Catch',
     })
     async catch(exception: unknown, host: Nest.ArgumentsHost) {
         const ctxType = host.getType();
@@ -85,12 +85,9 @@ export class GlobalExceptionFilter implements Nest.ExceptionFilter {
      */
     private _handleHttpError(exception: unknown, host: Nest.ArgumentsHost) {
         if (!this._httpAdapterHost) return;
-
-        const {httpAdapter} = this._httpAdapterHost;
+        const { httpAdapter } = this._httpAdapterHost;
         const ctx = host.switchToHttp();
-
         const httpStatus = exception instanceof Nest.HttpException ? exception.getStatus() : Nest.HttpStatus.INTERNAL_SERVER_ERROR;
-
         const responseBody = {
             statusCode: httpStatus,
             timestamp: new Date().toISOString(),
