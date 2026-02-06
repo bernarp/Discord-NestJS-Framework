@@ -1,14 +1,14 @@
-import { Injectable, Inject, Optional } from '@nestjs/common';
-import type { Interaction } from 'discord.js';
-import { IInteractionsManager } from './interfaces/interactions-manager.interface.js';
-import type { ICommandHandler } from './interfaces/command-handler.interface.js';
-import type { IButtonHandler } from './interfaces/button-handler.interface.js';
-import type { ISelectMenuHandler } from './interfaces/select-menu-handler.interface.js';
-import type { IModalHandler } from './interfaces/modal-handler.interface.js';
-import { ICOMMAND_HANDLER_TOKEN, IBUTTON_HANDLER_TOKEN, ISELECT_MENU_HANDLER_TOKEN, IMODAL_HANDLER_TOKEN } from '@/client/client.token.js';
-import { LogMethod, LogLevel } from '@common/decorators/log-method.decorator.js';
-import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
-import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
+import {Injectable, Inject, Optional} from '@nestjs/common';
+import type {Interaction} from 'discord.js';
+import {IInteractionsManager} from './interfaces/interactions-manager.interface.js';
+import type {ICommandHandler} from './interfaces/command-handler.interface.js';
+import type {IButtonHandler} from './interfaces/button-handler.interface.js';
+import type {ISelectMenuHandler} from './interfaces/select-menu-handler.interface.js';
+import type {IModalHandler} from './interfaces/modal-handler.interface.js';
+import {ICOMMAND_HANDLER_TOKEN, IBUTTON_HANDLER_TOKEN, ISELECT_MENU_HANDLER_TOKEN, IMODAL_HANDLER_TOKEN} from '@/client/client.token.js';
+import {LogMethod, LogLevel} from '@common/decorators/log-method.decorator.js';
+import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
+import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
 
 /**
  * Manager responsible for routing Discord interactions to their respective handlers.
@@ -21,7 +21,7 @@ export class InteractionsManager implements IInteractionsManager {
         @Optional() @Inject(ISELECT_MENU_HANDLER_TOKEN) private _selectMenuHandler: ISelectMenuHandler,
         @Optional() @Inject(IMODAL_HANDLER_TOKEN) private _modalHandler: IModalHandler,
         @Inject(LOG.LOGGER) private readonly _logger: ILogger
-    ) { }
+    ) {}
 
     /**
      * Main entry point for processing any incoming interaction.
@@ -53,9 +53,9 @@ export class InteractionsManager implements IInteractionsManager {
             if (interaction.isRepliable()) {
                 const errorMessage = 'An internal error occurred while processing this request.';
                 if (interaction.deferred || interaction.replied) {
-                    await interaction.followUp({ content: errorMessage, ephemeral: true });
+                    await interaction.followUp({content: errorMessage, ephemeral: true});
                 } else {
-                    await interaction.reply({ content: errorMessage, ephemeral: true });
+                    await interaction.reply({content: errorMessage, ephemeral: true});
                 }
             }
         }

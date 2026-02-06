@@ -1,6 +1,7 @@
-import {Injectable, OnModuleInit, OnModuleDestroy, Inject} from '@nestjs/common';
+import {Inject, Injectable, OnModuleDestroy, OnModuleInit} from '@nestjs/common';
 import * as discord from 'discord.js';
-import {ConfigService} from '@nestjs/config';
+import type {ConfigType} from '@nestjs/config';
+import {discordConfig} from '@common/config-env/index.js';
 import {IClient} from '@client/interfaces/client.interface.js';
 import type {InteractionsManager} from './interactions-manager.js';
 import {IINTERACTIONS_MANAGER_TOKEN} from '@/client/client.token.js';
@@ -19,12 +20,14 @@ export class BotClient implements IClient, OnModuleInit, OnModuleDestroy {
     private readonly _client: discord.Client;
 
     /**
-     * @param _configService - NestJS configuration service to access environment variables.
+     * @param _config - Namespaced Discord configuration.
      * @param _options - Discord.js client options provided via Dependency Injection.
+     * @param _interactionsManager - Manager for handling various interactions.
      * @param _logger - Custom logger instance.
      */
     constructor(
-        private readonly _configService: ConfigService,
+        @Inject(discordConfig.KEY)
+        private readonly _config: ConfigType<typeof discordConfig>,
         @Inject(DISCORD_CLIENT_OPTIONS) private readonly _options: discord.ClientOptions,
         @Inject(IINTERACTIONS_MANAGER_TOKEN) private readonly _interactionsManager: InteractionsManager,
         @Inject(LOG.LOGGER) private readonly _logger: ILogger
@@ -50,14 +53,10 @@ export class BotClient implements IClient, OnModuleInit, OnModuleDestroy {
 
     /**
      * Starts the Discord client and logs into the gateway.
-     * @throws Error if DISCORD_TOKEN is missing or authorization fails.
+     * @throws Error if authorization fails.
      */
     public async start(): Promise<void> {
-        const token = this._configService.get<string>('DISCORD_TOKEN');
-
-        if (!token) {
-            throw new Error('Invalid configuration: DISCORD_TOKEN is missing in environment variables');
-        }
+        const {token} = this._config;
 
         try {
             await this._client.login(token);

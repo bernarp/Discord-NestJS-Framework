@@ -1,17 +1,18 @@
-import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
-import { DiscoveryService, Reflector } from '@nestjs/core';
-import { ConfigService } from '@nestjs/config';
-import { REST, Routes } from 'discord.js';
-import { COMMAND_METADATA } from '@common/decorators/keys.js';
-import { CommandOptions } from '@common/decorators/command.schema.js';
-import { CommandRegistrationType } from '@client/enums/command-registration-type.enum.js';
-import type { ICommand } from '@client/interfaces/command.interface.js';
-import { ICOMMAND_HANDLER_TOKEN } from '@client/client.token.js';
-import type { ICommandHandler } from '@client/interfaces/command-handler.interface.js';
-import { LogMethod, LogLevel } from '@common/decorators/log-method.decorator.js';
-import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
-import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
-import { IDiscordCommandRegistrationDto } from './dto/discord-command-registration.dto.js';
+import {Injectable, OnModuleInit, Inject} from '@nestjs/common';
+import {DiscoveryService, Reflector} from '@nestjs/core';
+import type {ConfigType} from '@nestjs/config';
+import {discordConfig} from '@common/config-env/index.js';
+import {REST, Routes} from 'discord.js';
+import {COMMAND_METADATA} from '@common/decorators/keys.js';
+import {CommandOptions} from '@common/decorators/command.schema.js';
+import {CommandRegistrationType} from '@client/enums/command-registration-type.enum.js';
+import type {ICommand} from '@client/interfaces/command.interface.js';
+import {ICOMMAND_HANDLER_TOKEN} from '@client/client.token.js';
+import type {ICommandHandler} from '@client/interfaces/command-handler.interface.js';
+import {LogMethod, LogLevel} from '@common/decorators/log-method.decorator.js';
+import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
+import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
+import {IDiscordCommandRegistrationDto} from './dto/discord-command-registration.dto.js';
 
 /**
  * Service responsible for discovering and registering slash commands with Discord API.
@@ -22,13 +23,21 @@ import { IDiscordCommandRegistrationDto } from './dto/discord-command-registrati
  */
 @Injectable()
 export class SlashCommandRegistrationService implements OnModuleInit {
+    /**
+     * @param _discoveryService - Service to discover providers.
+     * @param _reflector - Helper to read metadata.
+     * @param _config - Namespaced Discord configuration.
+     * @param _commandHandler - Handler for command interactions.
+     * @param _logger - Custom logger instance.
+     */
     constructor(
         private readonly _discoveryService: DiscoveryService,
         private readonly _reflector: Reflector,
-        private readonly _configService: ConfigService,
+        @Inject(discordConfig.KEY)
+        private readonly _config: ConfigType<typeof discordConfig>,
         @Inject(ICOMMAND_HANDLER_TOKEN) private readonly _commandHandler: ICommandHandler,
         @Inject(LOG.LOGGER) private readonly _logger: ILogger
-    ) { }
+    ) {}
 
     /**
      * NestJS Lifecycle Hook: Triggered after all modules are initialized.
@@ -52,7 +61,7 @@ export class SlashCommandRegistrationService implements OnModuleInit {
         const globalCommands: IDiscordCommandRegistrationDto[] = [];
 
         providers.forEach(wrapper => {
-            const { instance } = wrapper;
+            const {instance} = wrapper;
             if (!instance || !instance.constructor) return;
 
             const metadata = this._reflector.get<CommandOptions>(COMMAND_METADATA, instance.constructor);
@@ -92,21 +101,12 @@ export class SlashCommandRegistrationService implements OnModuleInit {
         logResult: true
     })
     private async _uploadToDiscord(guildCommands: IDiscordCommandRegistrationDto[], globalCommands: IDiscordCommandRegistrationDto[]): Promise<void> {
-        const token = this._configService.get<string>('DISCORD_TOKEN');
-        const clientId = this._configService.get<string>('CLIENT_ID');
-        const guildId = this._configService.get<string>('GUILD_ID');
-
-        if (!token || !clientId) {
-            this._logger.error('Registration failed: DISCORD_TOKEN or CLIENT_ID is missing');
-            return;
-        }
-
-        const rest = new REST({ version: '10' }).setToken(token);
-
+        const {token, clientId, guildId} = this._config;
+        const rest = new REST({version: '10'}).setToken(token);
         try {
             if (globalCommands.length > 0) {
                 this._logger.log(`Registering ${globalCommands.length} global commands...`);
-                await rest.put(Routes.applicationCommands(clientId), { body: globalCommands });
+                await rest.put(Routes.applicationCommands(clientId), {body: globalCommands});
                 this._logger.log('Successfully registered global commands.');
             }
 
@@ -116,7 +116,7 @@ export class SlashCommandRegistrationService implements OnModuleInit {
                     return;
                 }
                 this._logger.log(`Registering ${guildCommands.length} guild commands to guild ${guildId}...`);
-                await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: guildCommands });
+                await rest.put(Routes.applicationGuildCommands(clientId, guildId), {body: guildCommands});
                 this._logger.log('Successfully registered guild commands.');
             }
         } catch (error) {

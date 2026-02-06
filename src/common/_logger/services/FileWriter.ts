@@ -94,7 +94,6 @@ export class FileWriter implements IFileWriter.IFileWriter, OnModuleInit, OnModu
     public async writeLogEntries(logEntries: ILogEntry[]): Promise<void> {
         await this.initialize();
 
-        // Group entries by file type to optimize writing
         const regularLogs: ILogEntry[] = [];
         const errorLogs: ILogEntry[] = [];
 

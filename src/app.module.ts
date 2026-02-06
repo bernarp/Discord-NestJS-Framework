@@ -1,5 +1,6 @@
 import {Module} from '@nestjs/common';
 import {ConfigModule} from '@nestjs/config';
+import {discordConfig} from '@common/config-env/index.js';
 import {ClientModule} from './client/client.module.js';
 import {LoggerModule} from './common/_logger/Logger.module.js';
 import {TemplateModule} from './modules/template/template.module.js';
@@ -12,6 +13,7 @@ import {TemplateModule} from './modules/template/template.module.js';
     imports: [
         ConfigModule.forRoot({
             isGlobal: true,
+            load: [discordConfig],
             envFilePath: '.env'
         }),
         ClientModule,

@@ -1,12 +1,12 @@
-import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
+import {ChatInputCommandInteraction, MessageFlags} from 'discord.js';
 
-import { Inject } from '@nestjs/common';
-import { CommandSlash, LogMethod, SubCommand } from '@/common/decorators/index.js';
-import { ICommand } from '@/client/interfaces/command.interface.js';
-import { CommandRegistrationType } from '@/client/enums/command-registration-type.enum.js';
-import { SUBCOMMAND_METADATA } from '@/common/decorators/keys.js';
-import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
-import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
+import {Inject} from '@nestjs/common';
+import {CommandSlash, LogMethod, SubCommand} from '@/common/decorators/index.js';
+import {ICommand} from '@/client/interfaces/command.interface.js';
+import {CommandRegistrationType} from '@/client/enums/command-registration-type.enum.js';
+import {SUBCOMMAND_METADATA} from '@/common/decorators/keys.js';
+import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
+import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
 
 /**
  * Example command demonstrating the use of @CommandSlash and @SubCommand decorators.
@@ -20,7 +20,7 @@ import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
 export class PingCommand implements ICommand {
     public readonly name = 'ping';
 
-    constructor(@Inject(LOG.LOGGER) private readonly _logger: ILogger) { }
+    constructor(@Inject(LOG.LOGGER) private readonly _logger: ILogger) {}
 
     /**
      * Entry point for the /ping command.

@@ -1,7 +1,7 @@
-import { safeJsonStringify } from '@/common/utils/safe-json.util.js';
-import { LogLevel } from '@/common/_logger/enums/LogLevel.js';
+import {safeJsonStringify} from '@/common/utils/safe-json.util.js';
+import {LogLevel} from '@/common/_logger/enums/LogLevel.js';
 
-export { LogLevel };
+export {LogLevel};
 
 export interface LogMethodOptions {
     /** Whether to log input arguments? (Default: true) */
@@ -19,12 +19,7 @@ export interface LogMethodOptions {
  * Safely serializes arguments and results to single-line JSON.
  */
 export function LogMethod(options: LogMethodOptions = {}): MethodDecorator {
-    const {
-        level = LogLevel.DEBUG,
-        logInput = true,
-        logResult = true,
-        description
-    } = options;
+    const {level = LogLevel.DEBUG, logInput = true, logResult = true, description} = options;
 
     return (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
         const originalMethod = descriptor.value;
@@ -43,12 +38,7 @@ export function LogMethod(options: LogMethodOptions = {}): MethodDecorator {
             if (logInput) {
                 const argsJson = safeJsonStringify(args);
 
-                logger.logWithLevel(
-                    level,
-                    `${msgPrefix}Called`,
-                    contextStr,
-                    { args: argsJson }
-                );
+                logger.logWithLevel(level, `${msgPrefix}Called`, contextStr, {args: argsJson});
             }
 
             const handleResult = (result: any) => {
@@ -56,23 +46,14 @@ export function LogMethod(options: LogMethodOptions = {}): MethodDecorator {
                     const duration = Date.now() - startTime;
                     const resultJson = safeJsonStringify(result);
 
-                    logger.logWithLevel(
-                        level,
-                        `${msgPrefix}Finished (+${duration}ms)`,
-                        contextStr,
-                        { result: resultJson }
-                    );
+                    logger.logWithLevel(level, `${msgPrefix}Finished (+${duration}ms)`, contextStr, {result: resultJson});
                 }
                 return result;
             };
 
             const handleError = (error: any) => {
                 const duration = Date.now() - startTime;
-                logger.err(
-                    `${msgPrefix}Failed (+${duration}ms)`,
-                    error,
-                    contextStr
-                );
+                logger.err(`${msgPrefix}Failed (+${duration}ms)`, error, contextStr);
                 throw error;
             };
 
