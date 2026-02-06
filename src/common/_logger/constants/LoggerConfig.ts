@@ -1,4 +1,4 @@
-import {LogLevel} from '../enums/LogLevel.js';
+import { LogLevel } from '../enums/LogLevel.js';
 import path from 'path';
 
 /**
@@ -33,8 +33,9 @@ export const LOGGER_CONFIG = {
         DEFAULT_BUFFER_SIZE: 100,
         MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB
         FLUSH_INTERVAL_MS: 2500, // 2.5 seconds
-        STACK_TRACE_DEPTH: 10
+        STACK_TRACE_DEPTH: 20
     } as const,
+
 
     /**
      * Default settings

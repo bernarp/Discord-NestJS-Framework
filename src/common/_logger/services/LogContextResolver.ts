@@ -1,9 +1,9 @@
-import {Injectable} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import * as stackTrace from 'stack-trace';
 import * as path from 'path';
 import * as ICustomLogger from '../interfaces/ICustomLogger.js';
-import {ILogContext} from '../interfaces/ILogEntry.js';
-import {LOGGER_CONFIG} from '../constants/LoggerConfig.js';
+import { ILogContext } from '../interfaces/ILogEntry.js';
+import { LOGGER_CONFIG } from '../constants/LoggerConfig.js';
 
 type CallSite = ReturnType<typeof stackTrace.get>[number];
 
@@ -65,7 +65,6 @@ export class LogContextResolver implements ICustomLogger.ILogContextResolver {
      * @param {CallSite} callSite - CallSite object from stack-trace.
      * @returns {ILogContext} Created context.
      */
-    // FIX: Using our robust CallSite type alias
     private _createContextFromCallSite(callSite: CallSite): ILogContext {
         const filePath = callSite.getFileName() || LOGGER_CONFIG.DEFAULTS.CONTEXT_UNKNOWN;
         const lineNumber = callSite.getLineNumber() || 0;
@@ -93,25 +92,27 @@ export class LogContextResolver implements ICustomLogger.ILogContextResolver {
 
     private _isNotLoggerCall(fileName: string | null): boolean {
         if (!fileName) return false;
-        // Normalize path and remove 'file://' prefix for consistent checking
+
         const normalizedPath = fileName
             .replace(/^file:[\\/]+/, '')
             .replace(/\\/g, '/')
             .toLowerCase();
-        // Exclude all files within the logger's directory
-        return !normalizedPath.includes('common/_logger');
+
+        const skipPatterns = [
+            'common/_logger',
+            'common/decorators',
+            'node_modules'
+        ];
+        const shouldSkip = skipPatterns.some(pattern => normalizedPath.includes(pattern));
+        return !shouldSkip;
     }
 
     private _getRelativePath(filePath: string): string {
         try {
-            // Remove 'file://' prefix before calculating relative path
             const cleanPath = filePath.replace(/^file:[\\/]+/, '');
-            // Convert to relative path from project root
             let relativePath = path.relative(this._projectRoot, cleanPath);
 
-            // If we are running from 'dist', try to make it cleaner
             if (relativePath.startsWith('dist' + path.sep)) {
-                // If it's in dist/src, we can optionally strip dist/src to show original structure
                 // relativePath = relativePath.replace(/^dist[\\/]src[\\/]/, '');
             }
 

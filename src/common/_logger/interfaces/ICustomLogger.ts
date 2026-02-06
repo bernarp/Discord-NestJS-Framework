@@ -1,22 +1,22 @@
-import {LoggerService} from '@nestjs/common';
-import {LogLevel} from '../enums/LogLevel.js';
-import {ILogEntry, ILogContext} from './ILogEntry.js';
+import { LoggerService } from '@nestjs/common';
+import { LogLevel } from '../enums/LogLevel.js';
+import { ILogEntry, ILogContext } from './ILogEntry.js';
 
 /**
  * @interface ILogContextResolver
- * @description Abstraction for determining contextual information about the logger's call site.
- * Provides information about the file, line, and method by analyzing the call stack.
+ * @description Абстракция для определения контекстной информации о месте вызова логгера.
+ * Обеспечивает получение информации о файле, строке и методе через анализ стека вызовов.
  */
 export interface ILogContextResolver {
     /**
-     * Determines the logger call context based on the call stack.
-     * @param {number} stackDepth - Stack depth for analysis (defaults to auto-detection).
-     * @returns {ILogContext} Contextual information about the call site.
+     * Определяет контекст вызова логгера на основе стека вызовов.
+     * @param {number} stackDepth - Глубина стека для анализа (по умолчанию используется автоопределение).
+     * @returns {ILogContext} Контекстная информация о месте вызова.
      */
     resolveContext(stackDepth?: number): ILogContext;
 
     /**
-     * Clears the context information cache (if caching is used).
+     * Очищает кеш контекстной информации (если используется кеширование).
      * @returns {void}
      */
     clearCache(): void;
@@ -24,113 +24,114 @@ export interface ILogContextResolver {
 
 /**
  * @interface ILogFormatter
- * @description Abstraction for formatting log messages.
- * Responsible for converting log entries into various output formats.
+ * @description Абстракция для форматирования сообщений логов.
+ * Отвечает за преобразование записей логов в различные выходные форматы.
  */
 export interface ILogFormatter {
     /**
-     * Formats a log entry for console output in the NestJS style.
-     * @param {ILogEntry} logEntry - Log entry to format.
-     * @returns {string} Formatted message for the console.
+     * Форматирует запись лога для консольного вывода в стиле NestJS.
+     * @param {ILogEntry} logEntry - Запись лога для форматирования.
+     * @returns {string} Отформатированное сообщение для консоли.
      */
     formatForConsole(logEntry: ILogEntry): string;
 
     /**
-     * Formats a log entry as JSON for writing to a file.
-     * @param {ILogEntry} logEntry - Log entry to format.
-     * @returns {string} JSON representation of the log entry.
+     * Форматирует запись лога в JSON для записи в файл.
+     * @param {ILogEntry} logEntry - Запись лога для форматирования.
+     * @returns {string} JSON представление записи лога.
      */
     formatForFile(logEntry: ILogEntry): string;
 
     /**
-     * Formats a timestamp according to NestJS requirements.
-     * @param {Date} timestamp - Timestamp to format.
-     * @returns {string} Formatted timestamp.
+     * Форматирует временную метку в соответствии с требованиями NestJS.
+     * @param {Date} timestamp - Временная метка для форматирования.
+     * @returns {string} Отформатированная временная метка.
      */
     formatTimestamp(timestamp: Date): string;
 }
 
 /**
  * @interface ICustomLogger
- * @description Main contract for the custom logger, extending NestJS LoggerService functionality.
- * Provides all necessary logging methods with additional capabilities for context determination and file logging.
+ * @description Основной контракт кастомного логгера, расширяющий функциональность NestJS LoggerService.
+ * Обеспечивает все необходимые методы для логирования с дополнительными возможностями
+ * по определению контекста и записи в файлы.
  */
 export interface ILogger extends LoggerService {
     /**
-     * Writes an informational message.
-     * @param {string} message - Message to log.
-     * @param {string} [context] - Message context or category.
+     * Записывает информационное сообщение.
+     * @param {string} message - Сообщение для логирования.
+     * @param {string} [context] - Контекст или категория сообщения.
      * @returns {void}
      */
     inf(message: string, context?: string): void;
 
     /**
-     * Writes an error message.
-     * @param {string} message - Error message.
-     * @param {Error | string} [trace] - Error stack or additional information.
-     * @param {string} [context] - Error context or category.
+     * Записывает сообщение об ошибке.
+     * @param {string} message - Сообщение об ошибке.
+     * @param {Error | string} [trace] - Стек ошибки или дополнительная информация.
+     * @param {string} [context] - Контекст или категория ошибки.
      * @returns {void}
      */
     err(message: string, trace?: Error | string, context?: string): void;
 
     /**
-     * Writes a debug message.
-     * @param {string} message - Debug message.
-     * @param {string} [context] - Message context or category.
+     * Записывает отладочное сообщение.
+     * @param {string} message - Отладочное сообщение.
+     * @param {string} [context] - Контекст или категория сообщения.
      * @returns {void}
      */
     debug(message: string, context?: string): void;
 
     /**
-     * Writes an HTTP request or response message.
-     * @param {string} message - HTTP operation message.
-     * @param {string} [context] - Message context or category.
+     * Записывает сообщение о HTTP запросе или ответе.
+     * @param {string} message - Сообщение о HTTP операции.
+     * @param {string} [context] - Контекст или категория сообщения.
      * @returns {void}
      */
     http(message: string, context?: string): void;
 
     /**
-     * Writes a fatal error message.
-     * @param {string} message - Fatal error message.
-     * @param {Error | string} [trace] - Error stack or additional information.
-     * @param {string} [context] - Error context or category.
+     * Записывает сообщение о критической ошибке.
+     * @param {string} message - Сообщение о критической ошибке.
+     * @param {Error | string} [trace] - Стек ошибки или дополнительная информация.
+     * @param {string} [context] - Контекст или категория ошибки.
      * @returns {void}
      */
     fatalError(message: string, trace?: Error | string, context?: string): void;
 
     /**
-     * Generic logging method with a specified level.
-     * @param {LogLevel} level - Logging level.
-     * @param {string} message - Message to log.
-     * @param {string} [context] - Message context or category.
-     * @param {Record<string, unknown>} [metadata] - Additional metadata.
+     * Общий метод логирования с указанием уровня.
+     * @param {LogLevel} level - Уровень логирования.
+     * @param {string} message - Сообщение для логирования.
+     * @param {string} [context] - Контекст или категория сообщения.
+     * @param {Record<string, unknown>} [metadata] - Дополнительные метаданные.
      * @returns {void}
      */
     logWithLevel(level: LogLevel, message: string, context?: string, metadata?: Record<string, unknown>): void;
 
     /**
-     * Forcefully writes all buffered logs to files.
-     * @returns {Promise<void>} Promise that resolves after all buffered logs are written.
+     * Принудительно записывает все буферизованные логи в файлы.
+     * @returns {Promise<void>} Promise, который разрешается после записи всех буферизованных логов.
      */
     flush(): Promise<void>;
 
     /**
-     * Sets the minimum logging level for filtering messages.
-     * @param {LogLevel} level - Minimum level for log recordings.
+     * Устанавливает минимальный уровень логирования для фильтрации сообщений.
+     * @param {LogLevel} level - Минимальный уровень для записи логов.
      * @returns {void}
      */
     setLogLevel(level: LogLevel): void;
 
     /**
-     * Returns the current minimum logging level.
-     * @returns {LogLevel} Current minimum logging level.
+     * Возвращает текущий минимальный уровень логирования.
+     * @returns {LogLevel} Текущий минимальный уровень логирования.
      */
     getLogLevel(): LogLevel;
 
     /**
-     * Performs a graceful shutdown of the logger.
-     * Writes all buffered logs and releases resources.
-     * @returns {Promise<void>} Promise that resolves after all operations are complete.
+     * Выполняет корректное завершение работы логгера.
+     * Записывает все буферизованные логи и освобождает ресурсы.
+     * @returns {Promise<void>} Promise, который разрешается после завершения всех операций.
      */
     shutdown(): Promise<void>;
 }

@@ -1,11 +1,8 @@
-import {Module} from '@nestjs/common';
-import {ConfigModule} from '@nestjs/config';
-import {ClientModule} from './client/client.module.js';
-
-import {APP_INTERCEPTOR} from '@nestjs/core';
-import {LoggingInterceptor} from './common/interceptors/logging.interceptor.js';
-
-import {LoggerModule} from './common/_logger/Logger.module.js';
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { ClientModule } from './client/client.module.js';
+import { LoggerModule } from './common/_logger/Logger.module.js';
+import { TemplateModule } from './modules/template/template.module.js';
 
 /**
  * Root Application Module.
@@ -17,16 +14,13 @@ import {LoggerModule} from './common/_logger/Logger.module.js';
             isGlobal: true,
             envFilePath: '.env'
         }),
+        ClientModule,
         LoggerModule,
-        ClientModule
+        TemplateModule
     ],
 
     controllers: [],
-    providers: [
-        {
-            provide: APP_INTERCEPTOR,
-            useClass: LoggingInterceptor
-        }
-    ]
+    providers: []
 })
-export class AppModule {}
+export class AppModule { }
+
