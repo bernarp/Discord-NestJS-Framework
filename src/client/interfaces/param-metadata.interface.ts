@@ -1,4 +1,4 @@
-import { DiscordParamType } from './discord-param-type.enum.js';
+import {DiscordParamType} from '../enums/discord-param-type.enum.js';
 
 /**
  * Metadata stored for each decorated parameter.

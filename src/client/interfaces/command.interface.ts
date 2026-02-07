@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, AutocompleteInteraction } from 'discord.js';
+import {ChatInputCommandInteraction, AutocompleteInteraction} from 'discord.js';
 
 /**
  * Interface for individual slash command definitions.

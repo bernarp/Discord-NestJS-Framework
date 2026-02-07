@@ -8,3 +8,5 @@ export * from './current-user.decorator.js';
 export * from './option.decorator.js';
 export * from './emits.decorator.js';
 export * from './subscribe.decorator.js';
+export * from './on.decorator.js';
+export * from './once.decorator.js';

@@ -1,12 +1,12 @@
-import { ChatInputCommandInteraction, MessageFlags, User } from 'discord.js';
-import { Inject } from '@nestjs/common';
-import { CommandSlash, LogMethod, SubCommand, Interaction, Option, CurrentUser } from '@/common/decorators/index.js';
-import { ICommand } from '@/client/interfaces/command.interface.js';
-import { CommandRegistrationType } from '@/client/enums/command-registration-type.enum.js';
-import { SUBCOMMAND_METADATA } from '@/common/decorators/keys.js';
-import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
-import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
-import { ParamsResolverService } from '@/client/interactions/params/params-resolver.service.js';
+import {ChatInputCommandInteraction, MessageFlags, User} from 'discord.js';
+import {Inject} from '@nestjs/common';
+import {CommandSlash, LogMethod, SubCommand, Interaction, Option, CurrentUser} from '@/common/decorators/index.js';
+import {ICommand} from '@/client/interfaces/command.interface.js';
+import {CommandRegistrationType} from '@/client/enums/command-registration-type.enum.js';
+import {SUBCOMMAND_METADATA} from '@/common/decorators/keys.js';
+import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
+import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
+import {ParamsResolverService} from '@/client/interactions/params-resolver.service.js';
 
 /**
  * Example command demonstrating the use of @CommandSlash and @SubCommand decorators.
@@ -23,7 +23,7 @@ export class PingCommand implements ICommand {
     constructor(
         @Inject(LOG.LOGGER) private readonly _logger: ILogger,
         private readonly _paramsResolver: ParamsResolverService
-    ) { }
+    ) {}
 
     /**
      * Entry point for the /ping command.
@@ -66,10 +66,7 @@ export class PingCommand implements ICommand {
         name: 'simple',
         description: 'Basic connectivity check'
     })
-    public async onSimplePing(
-        @CurrentUser() user: User,
-        @Interaction() interaction: ChatInputCommandInteraction
-    ): Promise<void> {
+    public async onSimplePing(@CurrentUser() user: User, @Interaction() interaction: ChatInputCommandInteraction): Promise<void> {
         const latency = Date.now() - interaction.createdTimestamp;
         await interaction.reply({
             content: `Pong! Latency: \`${latency}ms\`. User: ${user.tag}`,

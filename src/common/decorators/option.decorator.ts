@@ -1,6 +1,6 @@
-import { DISCORD_PARAMS_METADATA } from './keys.js';
-import { DiscordParamType } from '@/client/interactions/params/discord-param-type.enum.js';
-import { IParamMetadata } from '@/client/interactions/params/param-metadata.interface.js';
+import {DISCORD_PARAMS_METADATA} from './keys.js';
+import {DiscordParamType} from '@/client/enums/discord-param-type.enum.js';
+import {IParamMetadata} from '@/client/interfaces/param-metadata.interface.js';
 
 /**
  * Decorator to inject a specific option value from the interaction options into a method parameter.

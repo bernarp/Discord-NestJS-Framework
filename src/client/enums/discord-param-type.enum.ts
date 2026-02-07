@@ -15,5 +15,5 @@ export enum DiscordParamType {
     /**
      * Injects a specific option value from the interaction.
      */
-    OPTION = '2',
+    OPTION = '2'
 }

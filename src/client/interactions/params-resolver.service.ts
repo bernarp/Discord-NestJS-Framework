@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { ChatInputCommandInteraction, AutocompleteInteraction, BaseInteraction } from 'discord.js';
-import { DISCORD_PARAMS_METADATA } from '@/common/decorators/keys.js';
-import { DiscordParamType } from './discord-param-type.enum.js';
-import { IParamMetadata } from './param-metadata.interface.js';
+import {Injectable} from '@nestjs/common';
+import {ChatInputCommandInteraction, AutocompleteInteraction, BaseInteraction} from 'discord.js';
+import {DISCORD_PARAMS_METADATA} from '@/common/decorators/keys.js';
+import {DiscordParamType} from '../enums/discord-param-type.enum.js';
+import {IParamMetadata} from '../interfaces/param-metadata.interface.js';
 
 /**
  * Service responsible for resolving method arguments based on custom Discord decorators.

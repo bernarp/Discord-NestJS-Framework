@@ -34,7 +34,21 @@ export interface IClient {
 
     /**
      * Returns a human-readable string representation of the current connection status.
-     * * @returns {string} Status string (e.g., 'Ready', 'Connecting', 'Disconnected').
+     * @returns {string} Status string (e.g., 'Ready', 'Connecting', 'Disconnected').
      */
     getStatus(): string;
+
+    /**
+     * Registers an external event handler.
+     * @param event - The name of the Discord client event.
+     * @param handler - The callback function to execute.
+     */
+    registerEventHandler<K extends keyof import('discord.js').ClientEvents>(event: K, handler: (...args: import('discord.js').ClientEvents[K]) => void | Promise<void>): void;
+
+    /**
+     * Registers a one-time external event handler.
+     * @param event - The name of the Discord client event.
+     * @param handler - The callback function to execute.
+     */
+    registerEventOnce<K extends keyof import('discord.js').ClientEvents>(event: K, handler: (...args: import('discord.js').ClientEvents[K]) => void | Promise<void>): void;
 }

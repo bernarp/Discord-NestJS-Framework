@@ -1,10 +1,10 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { ChatInputCommandInteraction, AutocompleteInteraction } from 'discord.js';
-import { ICommandHandler } from '../interfaces/command-handler.interface.js';
-import { ICommand } from '../interfaces/command.interface.js';
-import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
-import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
-import { ParamsResolverService } from './params/params-resolver.service.js';
+import {Injectable, Inject} from '@nestjs/common';
+import {ChatInputCommandInteraction, AutocompleteInteraction} from 'discord.js';
+import {ICommandHandler} from '../interfaces/command-handler.interface.js';
+import {ICommand} from '../interfaces/command.interface.js';
+import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
+import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
+import {ParamsResolverService} from './params-resolver.service.js';
 
 /**
  * Specialized handler for processing all slash command interactions.
@@ -16,7 +16,7 @@ export class CommandInteractionHandler implements ICommandHandler {
     constructor(
         @Inject(LOG.LOGGER) private readonly _logger: ILogger,
         private readonly _paramsResolver: ParamsResolverService
-    ) { }
+    ) {}
 
     /**
      * Executes the appropriate command based on the interaction's command name.

@@ -8,7 +8,7 @@ import {RequestContextModule} from './common/_request-context/request-context.mo
 import {EventBusModule} from './common/event-bus/event-bus.module.js';
 import {GlobalExceptionFilter} from './common/filters/global-exception.filter.js';
 import {FiltersModule} from './common/filters/filters.module.js';
-import {TemplateModule} from './modules/template/template.module.js';
+import {ListenersModule} from './modules/template/template.module.js';
 import {TemplateTestEvents1Module} from './modules/template-test-events1/template-test-events1.module.js';
 import {TemplateTestEvents2Module} from './modules/template-test-events2/template-test-events2.module.js';
 import {UIModule} from './client/ui/ui.module.js';
@@ -30,7 +30,7 @@ import {UIModule} from './client/ui/ui.module.js';
         RequestContextModule,
         EventBusModule,
         FiltersModule,
-        TemplateModule,
+        ListenersModule,
         TemplateTestEvents1Module,
         TemplateTestEvents2Module
     ],

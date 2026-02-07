@@ -120,15 +120,24 @@ export class BotClient implements IClient, OnModuleInit, OnModuleDestroy {
      * Registers external event handlers.
      * This facilitates Single Responsibility Principle (SRP) by allowing other services
      * to handle specific logic (interactions, messages) without bloating the BotClient class.
-     * * @param event - The name of the Discord client event (e.g., 'interactionCreate').
+     * @param event - The name of the Discord client event (e.g., 'interactionCreate').
      * @param handler - The callback function to execute when the event fires.
      */
-    public registerEventHandler<K extends keyof discord.ClientEvents>(event: K, handler: (...args: discord.ClientEvents[K]) => void) {
+    public registerEventHandler<K extends keyof discord.ClientEvents>(event: K, handler: (...args: discord.ClientEvents[K]) => void | Promise<void>): void {
         this._client.on(event, handler as any);
     }
 
+    /**
+     * Registers a one-time external event handler.
+     * @param event - The name of the Discord client event.
+     * @param handler - The callback function to execute when the event fires.
+     */
+    public registerEventOnce<K extends keyof discord.ClientEvents>(event: K, handler: (...args: discord.ClientEvents[K]) => void | Promise<void>): void {
+        this._client.once(event, handler as any);
+    }
+
     private _registerInteractionHandler() {
-        this._client.on(discord.Events.InteractionCreate, interaction => {
+        this._client.on(discord.Events.InteractionCreate, (interaction: discord.Interaction) => {
             const correlationId = randomUUID();
             this._requestContext.run({correlationId}, () => {
                 this._interactionsManager.handleInteraction(interaction);
