@@ -14,17 +14,14 @@ export class ReadyListener {
     /**
      * Triggered once when the bot is ready.
      */
-    @Once(Events.ClientReady)
-    public async onReady(client: Client<true>) {
-        this._logger.log(`[DiscoveryTest] Bot is online as ${client.user.tag}`);
-    }
+    @Once(Events.ClientReady, {logInput: false})
+    public async onReady(client: Client<true>): Promise<void> {}
 
     /**
      * Triggered every time a message is created.
      */
     @On(Events.MessageCreate)
-    public async onMessage(message: any) {
+    public async onMessage(message: any): Promise<void> {
         if (message.author?.bot) return;
-        this._logger.debug(`[DiscoveryTest] Message received from ${message.author?.username}: ${message.content}`);
     }
 }

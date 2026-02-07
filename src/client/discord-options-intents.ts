@@ -9,7 +9,7 @@ import {Provider} from '@nestjs/common';
 export const discordOptionsProvider: Provider = {
     provide: DISCORD_CLIENT_OPTIONS,
     useValue: {
-        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMembers],
+        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMembers, GatewayIntentBits.MessageContent],
         partials: [Partials.Message, Partials.Channel, Partials.Reaction],
         failIfNotExists: false
     } as ClientOptions

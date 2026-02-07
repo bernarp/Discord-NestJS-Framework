@@ -2,6 +2,7 @@ export * from './command-slash.decorators.js';
 export * from './command.schema.js';
 export * from './keys.js';
 export * from './log-method.decorator.js';
+export * from './log-class.decorator.js';
 export * from './sub-command.decorator.js';
 export * from './interaction.decorator.js';
 export * from './current-user.decorator.js';

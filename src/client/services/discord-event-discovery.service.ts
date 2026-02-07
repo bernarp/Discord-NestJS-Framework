@@ -6,6 +6,7 @@ import {IDISCORD_EVENT_MANAGER_TOKEN} from '../client.token.js';
 import type {IDiscordEventManager} from '../interfaces/discord-event-manager.interface.js';
 import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
 import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
+import {LogMethod, LogLevel, LogClass} from '@/common/decorators/index.js';
 
 /**
  * Service responsible for discovering and registering Discord event listeners.
@@ -44,7 +45,6 @@ export class DiscordEventDiscoveryService implements OnModuleInit {
                     if (!metadata) return;
                     const handler = method.bind(instance);
                     this._eventManager.register(metadata.event, handler, metadata.once);
-                    this._logger.debug(`Registered Discord Event: ${metadata.event} -> ${instance.constructor.name}.${methodName}${metadata.once ? ' (once)' : ''}`);
                 });
             });
     }
