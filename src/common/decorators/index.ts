@@ -3,5 +3,8 @@ export * from './command.schema.js';
 export * from './keys.js';
 export * from './log-method.decorator.js';
 export * from './sub-command.decorator.js';
+export * from './interaction.decorator.js';
+export * from './current-user.decorator.js';
+export * from './option.decorator.js';
 export * from './emits.decorator.js';
 export * from './subscribe.decorator.js';

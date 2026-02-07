@@ -1,4 +1,4 @@
-import {ChatInputCommandInteraction, AutocompleteInteraction} from 'discord.js';
+import { ChatInputCommandInteraction, AutocompleteInteraction } from 'discord.js';
 
 /**
  * Interface for individual slash command definitions.
@@ -11,13 +11,13 @@ export interface ICommand {
 
     /**
      * Executes the command logic.
-     * @param interaction The slash command interaction object.
+     * @param args Arguments resolved by decorators or the raw interaction.
      */
-    execute(interaction: ChatInputCommandInteraction): Promise<void> | void;
+    execute(...args: any[]): Promise<void> | void;
 
     /**
      * Optional method for handling autocomplete for this specific command.
-     * @param interaction The autocomplete interaction object.
+     * @param args Arguments resolved by decorators or the raw interaction.
      */
-    autocomplete?(interaction: AutocompleteInteraction): Promise<void> | void;
+    autocomplete?(...args: any[]): Promise<void> | void;
 }

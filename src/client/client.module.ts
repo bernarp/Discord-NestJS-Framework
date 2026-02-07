@@ -1,17 +1,18 @@
-import {Global, Module} from '@nestjs/common';
-import {ConfigModule} from '@nestjs/config';
-import {DiscoveryModule} from '@nestjs/core';
-import {BotClient} from './client.js';
-import {discordOptionsProvider} from '@client/discord-options-intents.js';
-import {ICLIENT_TOKEN} from '@/client/client.token.js';
+import { Global, Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { DiscoveryModule } from '@nestjs/core';
+import { BotClient } from './client.js';
+import { discordOptionsProvider } from '@client/discord-options-intents.js';
+import { ICLIENT_TOKEN } from '@/client/client.token.js';
 
-import {InteractionsManager} from './interactions-manager.js';
-import {CommandInteractionHandler} from './interactions/command-interaction.handler.js';
-import {ButtonInteractionHandler} from './interactions/button-interaction.handler.js';
-import {SelectMenuInteractionHandler} from './interactions/select-menu-interaction.handler.js';
-import {ModalInteractionHandler} from './interactions/modal-interaction.handler.js';
-import {SlashCommandRegistrationService} from './register-slash-commands.js';
-import {ICOMMAND_HANDLER_TOKEN, IBUTTON_HANDLER_TOKEN, ISELECT_MENU_HANDLER_TOKEN, IMODAL_HANDLER_TOKEN, IINTERACTIONS_MANAGER_TOKEN} from '@/client/client.token.js';
+import { InteractionsManager } from './interactions-manager.js';
+import { CommandInteractionHandler } from './interactions/command-interaction.handler.js';
+import { ButtonInteractionHandler } from './interactions/button-interaction.handler.js';
+import { SelectMenuInteractionHandler } from './interactions/select-menu-interaction.handler.js';
+import { ModalInteractionHandler } from './interactions/modal-interaction.handler.js';
+import { SlashCommandRegistrationService } from './register-slash-commands.js';
+import { ParamsResolverService } from './interactions/params/params-resolver.service.js';
+import { ICOMMAND_HANDLER_TOKEN, IBUTTON_HANDLER_TOKEN, ISELECT_MENU_HANDLER_TOKEN, IMODAL_HANDLER_TOKEN, IINTERACTIONS_MANAGER_TOKEN } from '@/client/client.token.js';
 
 /**
  * Global module responsible for managing the Discord Client lifecycle.
@@ -52,7 +53,8 @@ import {ICOMMAND_HANDLER_TOKEN, IBUTTON_HANDLER_TOKEN, ISELECT_MENU_HANDLER_TOKE
         {
             provide: IINTERACTIONS_MANAGER_TOKEN,
             useExisting: InteractionsManager
-        }
+        },
+        ParamsResolverService
     ],
     exports: [
         BotClient,
@@ -66,7 +68,8 @@ import {ICOMMAND_HANDLER_TOKEN, IBUTTON_HANDLER_TOKEN, ISELECT_MENU_HANDLER_TOKE
         IBUTTON_HANDLER_TOKEN,
         ISELECT_MENU_HANDLER_TOKEN,
         IMODAL_HANDLER_TOKEN,
-        IINTERACTIONS_MANAGER_TOKEN
+        IINTERACTIONS_MANAGER_TOKEN,
+        ParamsResolverService
     ]
 })
-export class ClientModule {}
+export class ClientModule { }

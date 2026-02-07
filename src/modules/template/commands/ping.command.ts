@@ -1,16 +1,16 @@
-import {ChatInputCommandInteraction, MessageFlags} from 'discord.js';
-
-import {Inject} from '@nestjs/common';
-import {CommandSlash, LogMethod, SubCommand} from '@/common/decorators/index.js';
-import {ICommand} from '@/client/interfaces/command.interface.js';
-import {CommandRegistrationType} from '@/client/enums/command-registration-type.enum.js';
-import {SUBCOMMAND_METADATA} from '@/common/decorators/keys.js';
-import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
-import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
+import { ChatInputCommandInteraction, MessageFlags, User } from 'discord.js';
+import { Inject } from '@nestjs/common';
+import { CommandSlash, LogMethod, SubCommand, Interaction, Option, CurrentUser } from '@/common/decorators/index.js';
+import { ICommand } from '@/client/interfaces/command.interface.js';
+import { CommandRegistrationType } from '@/client/enums/command-registration-type.enum.js';
+import { SUBCOMMAND_METADATA } from '@/common/decorators/keys.js';
+import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
+import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
+import { ParamsResolverService } from '@/client/interactions/params/params-resolver.service.js';
 
 /**
  * Example command demonstrating the use of @CommandSlash and @SubCommand decorators.
- * This command handles its own subcommand routing via reflection.
+ * Now supports parameter decorators like @Option and @CurrentUser.
  */
 @CommandSlash({
     name: 'ping',
@@ -20,15 +20,17 @@ import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
 export class PingCommand implements ICommand {
     public readonly name = 'ping';
 
-    constructor(@Inject(LOG.LOGGER) private readonly _logger: ILogger) {}
+    constructor(
+        @Inject(LOG.LOGGER) private readonly _logger: ILogger,
+        private readonly _paramsResolver: ParamsResolverService
+    ) { }
 
     /**
      * Entry point for the /ping command.
-     * Routes the interaction to the appropriate subcommand handler defined with @SubCommand.
+     * Routes the interaction to the appropriate subcommand handler.
      */
     public async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         const subCommandName = interaction.options.getSubcommand(false);
-
         if (!subCommandName) {
             await interaction.reply({
                 content: 'Pong! Please use a subcommand like `/ping simple`.',
@@ -44,7 +46,8 @@ export class PingCommand implements ICommand {
 
             const metadata = Reflect.getMetadata(SUBCOMMAND_METADATA, method);
             if (metadata && metadata.name === subCommandName) {
-                await method.call(this, interaction);
+                const args = this._paramsResolver.resolveArguments(this, methodName, interaction);
+                await method.apply(this, args);
                 return;
             }
         }
@@ -63,10 +66,13 @@ export class PingCommand implements ICommand {
         name: 'simple',
         description: 'Basic connectivity check'
     })
-    public async onSimplePing(interaction: ChatInputCommandInteraction): Promise<void> {
+    public async onSimplePing(
+        @CurrentUser() user: User,
+        @Interaction() interaction: ChatInputCommandInteraction
+    ): Promise<void> {
         const latency = Date.now() - interaction.createdTimestamp;
         await interaction.reply({
-            content: `Pong! Latency: \`${latency}ms\`.`,
+            content: `Pong! Latency: \`${latency}ms\`. User: ${user.tag}`,
             flags: [MessageFlags.Ephemeral]
         });
     }
@@ -79,15 +85,13 @@ export class PingCommand implements ICommand {
         name: 'info',
         description: 'Detailed system information'
     })
-    public async onInfoPing(interaction: ChatInputCommandInteraction): Promise<void> {
+    public async onInfoPing(@Interaction() interaction: ChatInputCommandInteraction): Promise<void> {
         const latency = Date.now() - interaction.createdTimestamp;
         const apiLatency = interaction.client.ws.ping;
         const uptime = process.uptime();
-
         const hours = Math.floor(uptime / 3600);
         const minutes = Math.floor((uptime % 3600) / 60);
         const seconds = Math.floor(uptime % 60);
-
         await interaction.reply({
             content:
                 `**System Status**\n` +
