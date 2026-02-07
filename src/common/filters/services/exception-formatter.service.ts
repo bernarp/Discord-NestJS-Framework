@@ -22,7 +22,7 @@ export class ExceptionFormatterService {
         const isDev = process.env.NODE_ENV === 'development';
         return {
             title: 'Системная ошибка',
-            message: isDev ? `Debug: ${errorMessage}` : 'Произошла непредвиденная ошибка. Мы уже работаем над этим.'
+            message: isDev ? `Debug: ${errorMessage}` : 'Произошла непредвиденная ошибка.'
         };
     }
 }
