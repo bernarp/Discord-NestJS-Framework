@@ -20,6 +20,22 @@ export const Events = {
         CREATED: 'template.created',
         UPDATED: 'template.updated',
         DELETED: 'template.deleted'
+    },
+
+    /**
+     * System-level events (Gateway, REST, Infrastructure)
+     */
+    SYSTEM: {
+        ERROR: 'system.error',
+        WARNING: 'system.warning'
+    },
+
+    /**
+     * Client lifecycle events
+     */
+    LIFECYCLE: {
+        READY: 'lifecycle.ready',
+        DISCONNECT: 'lifecycle.disconnect'
     }
 } as const;
 

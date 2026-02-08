@@ -1,10 +1,5 @@
 import {ClientUser} from 'discord.js';
-import {DiscordActivityType, DiscordPresenceStatus, DiscordErrorContext} from '@client/enums/index.js';
-
-/**
- * Type for the global system error handler.
- */
-export type TGlobalErrorHandler = (error: Error | any, context: DiscordErrorContext) => void | Promise<void>;
+import {DiscordActivityType, DiscordPresenceStatus} from '@client/enums/index.js';
 
 /**
  * Interface defining the contract for the Discord Client wrapper.
@@ -63,11 +58,6 @@ export interface IClient {
      * Updates the bot's online status (e.g., online, idle, dnd).
      */
     setStatus(status: DiscordPresenceStatus): void;
-
-    /**
-     * Sets a global error handler for system-level errors (Gateway, REST, Rate Limits).
-     */
-    setGlobalErrorHandler(handler: TGlobalErrorHandler): void;
 
     /**
      * Registers an external event handler.

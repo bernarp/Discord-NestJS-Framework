@@ -2,13 +2,18 @@ import {Inject, Injectable, OnModuleDestroy, OnModuleInit} from '@nestjs/common'
 import * as discord from 'discord.js';
 import type {ConfigType} from '@nestjs/config';
 import {discordConfig} from '@common/config-env/index.js';
-import {IClient, TGlobalErrorHandler} from '@client/interfaces/client.interface.js';
+import {IClient} from '@client/interfaces/client.interface.js';
 import {DiscordActivityType, DiscordPresenceStatus, DiscordErrorContext} from '@client/enums/index.js';
 import type {InteractionsManager} from './interactions-manager.js';
 import {IINTERACTIONS_MANAGER_TOKEN} from '@/client/client.token.js';
 import {RequestContextService} from '@/common/_request-context/services/RequestContext.service.js';
 import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
 import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
+import {EventBusService} from '@/common/event-bus/event-bus.service.js';
+import {Events} from '@/common/event-bus/events.dictionary.js';
+import {SystemErrorEvent} from './events/system-error.event.js';
+import {ClientReadyEvent} from './events/client-ready.event.js';
+import {ClientDisconnectEvent} from './events/client-disconnect.event.js';
 import {randomUUID} from 'crypto';
 
 /**
@@ -30,14 +35,13 @@ export class BotClient implements IClient, OnModuleInit, OnModuleDestroy {
     private readonly _client: discord.Client;
     /** @private */
     private _isReady: boolean = false;
-    /** @private */
-    private _globalErrorHandler: TGlobalErrorHandler | null = null;
 
     /**
      * @param _config - Namespaced Discord configuration.
      * @param _options - Discord.js client options provided via Dependency Injection.
      * @param _interactionsManager - Manager for handling various interactions.
      * @param _requestContext - Service for managing request-scoped data.
+     * @param _eventBus - Application event bus service.
      * @param _logger - Custom logger instance.
      */
     constructor(
@@ -46,6 +50,7 @@ export class BotClient implements IClient, OnModuleInit, OnModuleDestroy {
         @Inject(DISCORD_CLIENT_OPTIONS) private readonly _options: discord.ClientOptions,
         @Inject(IINTERACTIONS_MANAGER_TOKEN) private readonly _interactionsManager: InteractionsManager,
         private readonly _requestContext: RequestContextService,
+        private readonly _eventBus: EventBusService,
         @Inject(LOG.LOGGER) private readonly _logger: ILogger
     ) {
         this._client = new discord.Client(this._options);
@@ -157,14 +162,6 @@ export class BotClient implements IClient, OnModuleInit, OnModuleDestroy {
     }
 
     /**
-     * Sets a global handler to intercept system-level errors and rate limits.
-     * @param handler - Function to execute when a system error occurs.
-     */
-    public setGlobalErrorHandler(handler: TGlobalErrorHandler): void {
-        this._globalErrorHandler = handler;
-    }
-
-    /**
      * Registers internal gateway events for logging, diagnostics and reporting.
      * @private
      */
@@ -172,42 +169,29 @@ export class BotClient implements IClient, OnModuleInit, OnModuleDestroy {
         this._client.once(discord.Events.ClientReady, c => {
             this._isReady = true;
             this._logger.log(`Logged in as ${c.user.tag} (ID: ${c.user.id})`);
+            this._eventBus.emit(Events.LIFECYCLE.READY, new ClientReadyEvent(c as discord.Client));
         });
 
         this._client.on(discord.Events.Error, error => {
             this._logger.error(`Discord Client Error: ${error.message}`, error.stack);
-            this._reportError(error, DiscordErrorContext.GatewayError);
+            this._eventBus.emit(Events.SYSTEM.ERROR, new SystemErrorEvent(error, DiscordErrorContext.GatewayError));
         });
 
         this._client.on(discord.Events.Warn, message => {
             this._logger.warn(`Discord Client Warning: ${message}`);
-            this._reportError(new Error(message), DiscordErrorContext.GatewayWarning);
+            this._eventBus.emit(Events.SYSTEM.ERROR, new SystemErrorEvent(new Error(message), DiscordErrorContext.GatewayWarning));
         });
 
         this._client.on(discord.Events.ShardDisconnect, () => {
             this._isReady = false;
+            this._eventBus.emit(Events.LIFECYCLE.DISCONNECT, new ClientDisconnectEvent());
         });
 
         this._client.rest.on('rateLimited', info => {
             const message = `Rate limited on [${info.method} ${info.route}]. Limit: ${info.limit}, Expiry: ${info.timeToReset}ms`;
             this._logger.warn(message);
-            this._reportError(info, DiscordErrorContext.RateLimit);
+            this._eventBus.emit(Events.SYSTEM.ERROR, new SystemErrorEvent(info, DiscordErrorContext.RateLimit));
         });
-    }
-
-    /**
-     * Safely executes the global error handler if one has been registered.
-     * @param error - The error or diagnostic data to report.
-     * @param context - The technical context of the error.
-     * @private
-     */
-    private async _reportError(error: any, context: DiscordErrorContext): Promise<void> {
-        if (!this._globalErrorHandler) return;
-        try {
-            await this._globalErrorHandler(error, context);
-        } catch (handlerError: any) {
-            this._logger.error(`Failed to execute global error handler: ${handlerError.message}`, handlerError.stack);
-        }
     }
 
     /**

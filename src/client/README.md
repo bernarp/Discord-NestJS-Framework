@@ -202,7 +202,6 @@ export class ChatListener {
 | `getInternalUptime()`                       | `number`              | Returns the Discord session uptime in milliseconds.                |
 | `setActivity(name, type)`                   | `void`                | Updates the bot's activity (e.g., Playing, Watching).              |
 | `setStatus(status)`                         | `void`                | Updates the bot's online status (online, dnd, idle).               |
-| `setGlobalErrorHandler(handler)`            | `void`                | Registers a global system error/rate limit interceptor.            |
 | `registerEventHandler<K>(event, handler)`   | `void`                | Registers a persistent event handler for the specified event.      |
 | `registerEventOnce<K>(event, handler)`      | `void`                | Registers a one-time event handler for the specified event.        |
 
@@ -225,21 +224,28 @@ if (client.isReady) {
 }
 ```
 
-### Global System Hooks
+### Event-Driven Monitoring
 
-The framework provides a centralized way to intercept critical system events such as Gateway errors and REST Rate Limits using the `DiscordErrorContext` enum.
+The framework uses an **EDA (Event-Driven Architecture)** for system monitoring. Instead of registering callbacks, you can subscribe to system events through the `EventBus`.
 
 ```typescript
+import {Injectable} from '@nestjs/common';
+import {Subscribe} from '@/common/decorators/index.js';
+import {Events} from '@/common/event-bus/events.dictionary.js';
+import {SystemErrorEvent} from '@/client/events/system-error.event.js';
 import {DiscordErrorContext} from '@/client/enums/index.js';
 
-client.setGlobalErrorHandler((error, context) => {
-    console.error(`[System Hook] Source: ${context}`, error);
-    
-    if (context === DiscordErrorContext.RateLimit) {
-        // Handle rate limit (e.g., notify monitoring, backoff logic)
-        console.warn(`Restoring in ${error.timeToReset}ms`);
+@Injectable()
+export class MonitoringService {
+    @Subscribe(Events.SYSTEM.ERROR)
+    public onSystemError(event: SystemErrorEvent): void {
+        console.error(`[System Event] Source: ${event.context}`, event.error);
+        
+        if (event.context === DiscordErrorContext.RateLimit) {
+            // Handle rate limit (e.g., notify monitoring, backoff logic)
+        }
     }
-});
+}
 ```
 
 **Available Contexts (`DiscordErrorContext`):**
@@ -248,6 +254,29 @@ client.setGlobalErrorHandler((error, context) => {
 - `RateLimit`: Discord API rate limit triggers (REST).
 - `InteractionError`: Failures during command/interaction execution.
 - `InternalError`: General framework-level issues.
+
+### Lifecycle Events
+
+The framework also emits lifecycle events through the `EventBus` to allow modules to react to bot connectivity changes.
+
+```typescript
+import {Injectable} from '@nestjs/common';
+import {Subscribe} from '@/common/decorators/index.js';
+import {Events} from '@/common/event-bus/events.dictionary.js';
+import {ClientReadyEvent} from '@/client/events/client-ready.event.js';
+
+@Injectable()
+export class LifecycleService {
+    @Subscribe(Events.LIFECYCLE.READY)
+    public onReady(event: ClientReadyEvent): void {
+        console.log(`System ready! Logged in as: ${event.payload.user?.tag}`);
+    }
+}
+```
+
+**Available Lifecycle Events (`Events.LIFECYCLE`):**
+- `READY`: Emitted when the client is fully connected and ready. Payload: `Client`.
+- `DISCONNECT`: Emitted when a shard disconnects. Payload: `{ timestamp: number }`.
 
 ### Handler Registration Methods
 
