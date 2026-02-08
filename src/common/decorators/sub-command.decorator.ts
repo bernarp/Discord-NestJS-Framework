@@ -50,7 +50,7 @@ export function SubCommand(options: SubCommandOptions): MethodDecorator {
 
     return (target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
         const data = result.data;
-        Reflect.defineMetadata(SUBCOMMAND_METADATA, {...data, method: propertyKey}, descriptor.value);
+        Reflect.defineMetadata(SUBCOMMAND_METADATA, {...data, method: propertyKey}, target.constructor, propertyKey);
         const existingSubCommands = Reflect.getMetadata(INTERNAL_SUBCOMMANDS_METADATA, target.constructor) || [];
         existingSubCommands.push({
             type: ApplicationCommandOptionType.Subcommand,

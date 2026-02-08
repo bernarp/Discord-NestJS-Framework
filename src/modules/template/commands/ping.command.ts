@@ -3,10 +3,8 @@ import {Inject} from '@nestjs/common';
 import {CommandSlash, LogMethod, SubCommand, Interaction, Option, CurrentUser} from '@/common/decorators/index.js';
 import {ICommand} from '@/client/interfaces/command.interface.js';
 import {CommandRegistrationType} from '@/client/enums/command-registration-type.enum.js';
-import {SUBCOMMAND_METADATA} from '@/common/decorators/keys.js';
 import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
 import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
-import {ParamsResolverService} from '@/client/interactions/params-resolver.service.js';
 import {IUPTIME_PROVIDER_TOKEN, ISYSTEM_INFO_PROVIDER_TOKEN} from '@/common/utils/utils.token.js';
 import type {IUptimeProvider} from '@/common/utils/interfaces/IUptimeProvider.js';
 import type {ISystemInfoProvider} from '@/common/utils/interfaces/ISystemInfoProvider.js';
@@ -26,39 +24,16 @@ export class PingCommand implements ICommand {
     constructor(
         @Inject(LOG.LOGGER) private readonly _logger: ILogger,
         @Inject(IUPTIME_PROVIDER_TOKEN) private readonly _uptimeProvider: IUptimeProvider,
-        @Inject(ISYSTEM_INFO_PROVIDER_TOKEN) private readonly _systemInfoProvider: ISystemInfoProvider,
-        private readonly _paramsResolver: ParamsResolverService
+        @Inject(ISYSTEM_INFO_PROVIDER_TOKEN) private readonly _systemInfoProvider: ISystemInfoProvider
     ) {}
 
     /**
      * Entry point for the /ping command.
-     * Routes the interaction to the appropriate subcommand handler.
+     * Called if no subcommand is provided.
      */
-    public async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-        const subCommandName = interaction.options.getSubcommand(false);
-        if (!subCommandName) {
-            await interaction.reply({
-                content: 'Pong! Please use a subcommand like `/ping simple`.',
-                flags: [MessageFlags.Ephemeral]
-            });
-            return;
-        }
-        const prototype = Object.getPrototypeOf(this);
-        const methodNames = Object.getOwnPropertyNames(prototype);
-        for (const methodName of methodNames) {
-            const method = (this as any)[methodName];
-            if (typeof method !== 'function') continue;
-
-            const metadata = Reflect.getMetadata(SUBCOMMAND_METADATA, method);
-            if (metadata && metadata.name === subCommandName) {
-                const args = this._paramsResolver.resolveArguments(this, methodName, interaction);
-                await method.apply(this, args);
-                return;
-            }
-        }
-
+    public async execute(@Interaction() interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.reply({
-            content: `Unknown subcommand: ${subCommandName}`,
+            content: 'Pong! Please use a subcommand like `/ping simple`.',
             flags: [MessageFlags.Ephemeral]
         });
     }
