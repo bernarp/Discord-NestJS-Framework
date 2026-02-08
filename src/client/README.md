@@ -193,13 +193,54 @@ export class ChatListener {
 
 | Method                                      | Return Type           | Description                                                        |
 | :------------------------------------------ | :-------------------- | :----------------------------------------------------------------- |
+| `isReady` (getter)                          | `boolean`             | Returns `true` if the client is connected and ready.               |
 | `start()`                                   | `Promise<void>`       | Initializes the WebSocket connection to the Discord Gateway.        |
 | `shutdown()`                                | `Promise<void>`       | Terminates the connection and cleans up resources.                  |
 | `getUser()`                                 | `ClientUser \| null`   | Returns the current bot user instance (available after start).      |
 | `getPing()`                                 | `number`              | Returns the current WebSocket latency (ms).                        |
 | `getStatus()`                               | `string`              | Returns the current connection status string.                      |
+| `getInternalUptime()`                       | `number`              | Returns the Discord session uptime in milliseconds.                |
+| `setActivity(name, type)`                   | `void`                | Updates the bot's activity (e.g., Playing, Watching).              |
+| `setStatus(status)`                         | `void`                | Updates the bot's online status (online, dnd, idle).               |
+| `setGlobalErrorHandler(handler)`            | `void`                | Registers a global system error/rate limit interceptor.            |
 | `registerEventHandler<K>(event, handler)`   | `void`                | Registers a persistent event handler for the specified event.      |
 | `registerEventOnce<K>(event, handler)`      | `void`                | Registers a one-time event handler for the specified event.        |
+
+### Presence & Status Management
+
+You can dynamically manage the bot's appearance through the `IClient` interface.
+
+```typescript
+// Set activity to "Watching the server"
+client.setActivity('the server', ActivityType.Watching);
+
+// Set status to Do Not Disturb
+client.setStatus('dnd');
+
+// Check connectivity
+if (client.isReady) {
+    console.log(`Uptime: ${client.getInternalUptime()}ms`);
+}
+```
+
+### Global System Hooks
+
+The framework provides a centralized way to intercept critical system events such as Gateway errors and REST Rate Limits.
+
+```typescript
+client.setGlobalErrorHandler((error, context) => {
+    console.error(`[System Hook] Context: ${context}`, error);
+    
+    if (context === 'RateLimit') {
+        // Handle rate limit (e.g., notify monitoring, backoff logic)
+    }
+});
+```
+
+**Context Types:**
+- `GatewayError`: Critical socket errors or connection failures.
+- `GatewayWarning`: Non-fatal gateway warnings.
+- `RateLimit`: Discord API rate limit triggers (REST).
 
 ### Handler Registration Methods
 
