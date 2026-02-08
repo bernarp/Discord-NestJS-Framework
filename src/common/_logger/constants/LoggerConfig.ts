@@ -109,33 +109,33 @@ export const LOG = {
     /**
      * Token for the main logger interface
      */
-    LOGGER: Symbol('ILogger'),
+    LOGGER: 'ILogger',
 
     /**
      * Token for the file writer
      */
-    FILE_WRITER: Symbol('IFileWriter'),
+    FILE_WRITER: 'IFileWriter',
 
     /**
      * Token for the context resolver
      */
-    CONTEXT_RESOLVER: Symbol('ILogContextResolver'),
+    CONTEXT_RESOLVER: 'ILogContextResolver',
 
     /**
      * Token for the log formatter
      */
-    LOG_FORMATTER: Symbol('ILogFormatter'),
+    LOG_FORMATTER: 'ILogFormatter',
 
     /**
      * Token for file writer options
      */
-    FILE_WRITER_OPTIONS: Symbol('IFileWriterOptions'),
+    FILE_WRITER_OPTIONS: 'IFileWriterOptions',
 
     /**
      * Token for application startup time (Date)
      * Provides a single source of time for all services.
      */
-    STARTUP_TIMESTAMP: Symbol('StartupTimestamp')
+    STARTUP_TIMESTAMP: 'StartupTimestamp'
 } as const;
 
 /**

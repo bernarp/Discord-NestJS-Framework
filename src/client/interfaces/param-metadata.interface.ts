@@ -22,7 +22,17 @@ export interface IParamMetadata {
 
     /**
      * Array of pipes to be applied to the parameter value.
-     * Can be instances or classes.
      */
     pipes?: (IDiscordPipe | Function)[];
+
+    /**
+     * Configuration for Discord API (used if type is OPTION).
+     */
+    optionOptions?: {
+        name: string;
+        description: string;
+        required?: boolean;
+        type?: any;
+        autocomplete?: boolean;
+    };
 }

@@ -72,26 +72,18 @@ import {DiscordEventDiscoveryService} from './services/discord-event-discovery.s
             provide: IMODAL_HANDLER_TOKEN,
             useExisting: ModalInteractionHandler
         },
-        // Multi-provider for the InteractionsManager registry
+        // Primary Registry: Collective interaction handlers array
         {
             provide: IDISCORD_INTERACTION_HANDLERS_TOKEN,
-            useExisting: CommandInteractionHandler,
-            multi: true
-        },
-        {
-            provide: IDISCORD_INTERACTION_HANDLERS_TOKEN,
-            useExisting: ButtonInteractionHandler,
-            multi: true
-        },
-        {
-            provide: IDISCORD_INTERACTION_HANDLERS_TOKEN,
-            useExisting: SelectMenuInteractionHandler,
-            multi: true
-        },
-        {
-            provide: IDISCORD_INTERACTION_HANDLERS_TOKEN,
-            useExisting: ModalInteractionHandler,
-            multi: true
+            useFactory: (
+                commandHandler: CommandInteractionHandler,
+                buttonHandler: ButtonInteractionHandler,
+                selectMenuHandler: SelectMenuInteractionHandler,
+                modalHandler: ModalInteractionHandler
+            ) => {
+                return [commandHandler, buttonHandler, selectMenuHandler, modalHandler];
+            },
+            inject: [CommandInteractionHandler, ButtonInteractionHandler, SelectMenuInteractionHandler, ModalInteractionHandler]
         }
     ] as Provider[],
     exports: [

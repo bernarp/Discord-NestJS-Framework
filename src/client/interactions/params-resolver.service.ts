@@ -1,5 +1,5 @@
-import {Injectable, Type} from '@nestjs/common';
-import {ChatInputCommandInteraction, AutocompleteInteraction, BaseInteraction} from 'discord.js';
+import {Inject, Injectable, Type} from '@nestjs/common';
+import {ChatInputCommandInteraction, AutocompleteInteraction, BaseInteraction, User, GuildMember, Role, BaseChannel, Attachment} from 'discord.js';
 import {DISCORD_PARAMS_METADATA} from '@/common/decorators/keys.js';
 import {DiscordParamType} from '../enums/discord-param-type.enum.js';
 import {IParamMetadata} from '../interfaces/param-metadata.interface.js';
@@ -8,6 +8,9 @@ import {IDiscordPipe, IArgumentMetadata} from '../../common/pipes/interfaces/dis
 import {ParseIntPipe} from '../../common/pipes/parse-int.pipe.js';
 import {ParseFloatPipe} from '../../common/pipes/parse-float.pipe.js';
 import {ParseBoolPipe} from '../../common/pipes/parse-bool.pipe.js';
+import {LogMethod, LogLevel} from '@/common/decorators/log-method.decorator.js';
+import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
+import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
 
 /**
  * Service responsible for resolving method arguments based on custom Discord decorators.
@@ -15,6 +18,8 @@ import {ParseBoolPipe} from '../../common/pipes/parse-bool.pipe.js';
  */
 @Injectable()
 export class ParamsResolverService {
+    constructor(@Inject(LOG.LOGGER) private readonly _logger: ILogger) {}
+
     /**
      * Resolves arguments for a specific method execution based on interaction data.
      * @param target - The object instance containing the method.
@@ -22,6 +27,7 @@ export class ParamsResolverService {
      * @param interaction - The current Discord interaction.
      * @returns Array of resolved arguments in correct order.
      */
+    @LogMethod({level: LogLevel.DEBUG, description: 'Resolve method arguments'})
     public async resolveArguments(target: object, methodName: string, interaction: BaseInteraction): Promise<any[]> {
         const metadata: IParamMetadata[] = Reflect.getMetadata(DISCORD_PARAMS_METADATA, target.constructor, methodName) || [];
 
@@ -29,21 +35,19 @@ export class ParamsResolverService {
             return [interaction];
         }
 
-        // Get reflected types (requires emitDecoratorMetadata: true)
         const paramTypes: Type<any>[] = Reflect.getMetadata('design:paramtypes', target, methodName) || [];
 
         const args: any[] = [];
         for (const param of metadata) {
-            const rawValue = this._resolveRawValue(param, interaction);
+            const metatype = paramTypes[param.index];
+            const rawValue = this._resolveRawValue(param, interaction, metatype);
 
-            // Prepare metadata for pipes
             const argumentMetadata: IArgumentMetadata = {
                 type: param.type,
-                metatype: paramTypes[param.index],
+                metatype: metatype,
                 data: param.data
             };
 
-            // Apply Pipes
             args[param.index] = await this._applyPipes(rawValue, param, argumentMetadata);
         }
 
@@ -56,13 +60,10 @@ export class ParamsResolverService {
     private async _applyPipes(value: any, param: IParamMetadata, metadata: IArgumentMetadata): Promise<any> {
         let result = value;
 
-        // 1. Automatic transformation based on metatype if no pipes are explicitly provided
-        // and it's an OPTION type (where we usually need parsing)
         if ((!param.pipes || param.pipes.length === 0) && param.type === DiscordParamType.OPTION) {
             result = this._applyAutomaticTransformation(result, metadata);
         }
 
-        // 2. Apply explicitly defined pipes
         if (param.pipes && param.pipes.length > 0) {
             for (const pipe of param.pipes) {
                 const pipeInstance = typeof pipe === 'function' ? new (pipe as Type<IDiscordPipe>)() : pipe;
@@ -82,9 +83,6 @@ export class ParamsResolverService {
 
         switch (metadata.metatype) {
             case Number:
-                // Try to determine if it's float or int?
-                // For simplicity, use Float to support both, or Int if we know it should be Int.
-                // Here we'll default to Float as it covers Int as well.
                 return new ParseFloatPipe().transform(value, metadata);
             case Boolean:
                 return new ParseBoolPipe().transform(value, metadata);
@@ -98,7 +96,7 @@ export class ParamsResolverService {
     /**
      * Extracts specific raw value from interaction based on param type.
      */
-    private _resolveRawValue(param: IParamMetadata, interaction: BaseInteraction): any {
+    private _resolveRawValue(param: IParamMetadata, interaction: BaseInteraction, metatype?: Type<any>): any {
         switch (param.type) {
             case DiscordParamType.INTERACTION:
                 return interaction;
@@ -122,7 +120,7 @@ export class ParamsResolverService {
                 return interaction.client;
 
             case DiscordParamType.OPTION:
-                return this._getOptionValue(param.data!, interaction);
+                return this._getOptionValue(param.data!, interaction, metatype);
 
             default:
                 return undefined;
@@ -130,14 +128,30 @@ export class ParamsResolverService {
     }
 
     /**
-     * Safely retrieves option value from interaction.
+     * Safely retrieves option value from interaction with smart type resolution.
      */
-    private _getOptionValue(name: string, interaction: BaseInteraction): any {
+    private _getOptionValue(name: string, interaction: BaseInteraction, metatype?: Type<any>): any {
         if (!(interaction instanceof ChatInputCommandInteraction) && !(interaction instanceof AutocompleteInteraction)) {
             return undefined;
         }
-        const option = interaction.options.get(name);
-        if (!option) return undefined;
-        return option.value;
+
+        if (interaction.isAutocomplete()) {
+            return interaction.options.get(name)?.value;
+        }
+
+        const options = interaction.options;
+
+        if (metatype) {
+            if (metatype === User) return options.getUser(name);
+            if (metatype === GuildMember) return options.getMember(name);
+            if (metatype === Role) return options.getRole(name);
+            if (metatype === Attachment) return options.getAttachment(name);
+
+            if (metatype === BaseChannel || (metatype.prototype && metatype.prototype instanceof BaseChannel)) {
+                return options.getChannel(name);
+            }
+        }
+
+        return options.get(name)?.value;
     }
 }

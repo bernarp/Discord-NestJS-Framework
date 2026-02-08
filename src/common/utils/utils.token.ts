@@ -1,2 +1,2 @@
-export const IUPTIME_PROVIDER_TOKEN = Symbol('IUptimeProvider');
-export const ISYSTEM_INFO_PROVIDER_TOKEN = Symbol('ISystemInfoProvider');
+export const IUPTIME_PROVIDER_TOKEN = 'IUPTIME_PROVIDER_TOKEN';
+export const ISYSTEM_INFO_PROVIDER_TOKEN = 'ISYSTEM_INFO_PROVIDER_TOKEN';

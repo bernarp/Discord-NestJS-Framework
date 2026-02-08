@@ -1,14 +1,14 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { ChatInputCommandInteraction, AutocompleteInteraction, Interaction } from 'discord.js';
-import { AbstractInteractionHandler } from './base/abstract-interaction.handler.js';
-import { ICommandHandler } from '../interfaces/command-handler.interface.js';
-import { ICommand } from '../interfaces/command.interface.js';
-import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
-import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
-import { ParamsResolverService } from './params-resolver.service.js';
-import { InteractionMethod } from '../enums/interaction-method.enum.js';
-import { SUBCOMMAND_METADATA, DEFER_METADATA, EPHEMERAL_METADATA } from '@/common/decorators/keys.js';
-import type { DeferOptions } from '@/common/decorators/defer.decorator.js';
+import {Injectable, Inject} from '@nestjs/common';
+import {ChatInputCommandInteraction, AutocompleteInteraction, Interaction} from 'discord.js';
+import {AbstractInteractionHandler} from './base/abstract-interaction.handler.js';
+import {ICommandHandler} from '../interfaces/command-handler.interface.js';
+import {ICommand} from '../interfaces/command.interface.js';
+import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
+import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
+import {ParamsResolverService} from './params-resolver.service.js';
+import {InteractionMethod} from '../enums/interaction-method.enum.js';
+import {SUBCOMMAND_METADATA, DEFER_METADATA, EPHEMERAL_METADATA} from '@/common/decorators/keys.js';
+import type {DeferOptions} from '@/common/decorators/defer.decorator.js';
 
 /**
  * @class CommandInteractionHandler
