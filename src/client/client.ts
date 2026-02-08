@@ -2,7 +2,7 @@ import {Inject, Injectable, OnModuleDestroy, OnModuleInit} from '@nestjs/common'
 import * as discord from 'discord.js';
 import type {ConfigType} from '@nestjs/config';
 import {discordConfig} from '@common/config-env/index.js';
-import {IClient} from '@client/interfaces/client.interface.js';
+import {IClient, TGlobalErrorHandler} from '@client/interfaces/client.interface.js';
 import type {InteractionsManager} from './interactions-manager.js';
 import {IINTERACTIONS_MANAGER_TOKEN} from '@/client/client.token.js';
 import {RequestContextService} from '@/common/_request-context/services/RequestContext.service.js';
@@ -12,14 +12,25 @@ import {randomUUID} from 'crypto';
 
 /**
  * Injection token for Discord Client configurations.
- * Keeping it here for simplicity, but in large systems,
- * move this to a separate constants.ts file.
  */
 export const DISCORD_CLIENT_OPTIONS = 'DISCORD_CLIENT_OPTIONS';
 
+/**
+ * Main wrapper for the Discord.js Client.
+ *
+ * Implements IClient interface and manages the connection lifecycle,
+ * event registration, and interaction routing.
+ *
+ * @class BotClient
+ */
 @Injectable()
 export class BotClient implements IClient, OnModuleInit, OnModuleDestroy {
+    /** @private */
     private readonly _client: discord.Client;
+    /** @private */
+    private _isReady: boolean = false;
+    /** @private */
+    private _globalErrorHandler: TGlobalErrorHandler | null = null;
 
     /**
      * @param _config - Namespaced Discord configuration.
@@ -40,9 +51,17 @@ export class BotClient implements IClient, OnModuleInit, OnModuleDestroy {
     }
 
     /**
+     * Returns true if the client is ready and connected to the gateway.
+     * @returns {boolean}
+     */
+    public get isReady(): boolean {
+        return this._isReady;
+    }
+
+    /**
      * NestJS Lifecycle Hook: Initializes the bot and establishes a connection to the Discord Gateway.
      */
-    async onModuleInit() {
+    public async onModuleInit(): Promise<void> {
         this._registerBaseEvents();
         this._registerInteractionHandler();
         await this.start();
@@ -51,17 +70,17 @@ export class BotClient implements IClient, OnModuleInit, OnModuleDestroy {
     /**
      * NestJS Lifecycle Hook: Ensures the bot gracefully shuts down when the application stops.
      */
-    async onModuleDestroy() {
+    public async onModuleDestroy(): Promise<void> {
         await this.shutdown();
     }
 
     /**
      * Starts the Discord client and logs into the gateway.
-     * @throws Error if authorization fails.
+     * @throws {Error} If authorization fails.
+     * @returns {Promise<void>}
      */
     public async start(): Promise<void> {
         const {token} = this._config;
-
         try {
             await this._client.login(token);
         } catch (error) {
@@ -71,7 +90,8 @@ export class BotClient implements IClient, OnModuleInit, OnModuleDestroy {
     }
 
     /**
-     * Closes the connection to the Discord Gateway.
+     * Closes the connection to the Discord Gateway and destroys the client.
+     * @returns {Promise<void>}
      */
     public async shutdown(): Promise<void> {
         this._logger.warn('Closing Gateway connection...');
@@ -80,13 +100,15 @@ export class BotClient implements IClient, OnModuleInit, OnModuleDestroy {
 
     /**
      * Retrieves the current Discord user if the client is logged in.
+     * @returns {discord.ClientUser | null}
      */
     public getUser(): discord.ClientUser | null {
         return this._client.user;
     }
 
     /**
-     * Returns the current heartbeat ping to the WebSocket.
+     * Returns the current heartbeat ping to the WebSocket gateway.
+     * @returns {number} Latency in milliseconds.
      */
     public getPing(): number {
         return this._client.ws.ping;
@@ -94,34 +116,103 @@ export class BotClient implements IClient, OnModuleInit, OnModuleDestroy {
 
     /**
      * Returns the human-readable string representation of the client's current status.
+     * @returns {string} Status name.
      */
     public getStatus(): string {
         return discord.Status[this._client.ws.status] ?? 'Unknown';
     }
 
     /**
-     * Registers internal gateway events for logging and debugging.
+     * Returns the internal uptime of the Discord client session.
+     * @returns {number} Uptime in milliseconds.
      */
-    private _registerBaseEvents() {
+    public getInternalUptime(): number {
+        return this._client.uptime ?? 0;
+    }
+
+    /**
+     * Updates the bot's activity presence (e.g., "Playing...", "Watching...").
+     * @param name - The text message for the activity.
+     * @param type - The type of activity (Playing, Streaming, etc.).
+     */
+    public setActivity(name: string, type: discord.ActivityType): void {
+        if (!this._client.user) {
+            this._logger.warn('Cannot set activity: Client user is not initialized');
+            return;
+        }
+        this._client.user.setActivity(name, {type});
+    }
+
+    /**
+     * Updates the bot's online status.
+     * @param status - Online status (online, idle, dnd, invisible).
+     */
+    public setStatus(status: discord.PresenceStatusData): void {
+        if (!this._client.user) {
+            this._logger.warn('Cannot set status: Client user is not initialized');
+            return;
+        }
+        this._client.user.setPresence({status});
+    }
+
+    /**
+     * Sets a global handler to intercept system-level errors and rate limits.
+     * @param handler - Function to execute when a system error occurs.
+     */
+    public setGlobalErrorHandler(handler: TGlobalErrorHandler): void {
+        this._globalErrorHandler = handler;
+    }
+
+    /**
+     * Registers internal gateway events for logging, diagnostics and reporting.
+     * @private
+     */
+    private _registerBaseEvents(): void {
         this._client.once(discord.Events.ClientReady, c => {
+            this._isReady = true;
             this._logger.log(`Logged in as ${c.user.tag} (ID: ${c.user.id})`);
         });
 
         this._client.on(discord.Events.Error, error => {
             this._logger.error(`Discord Client Error: ${error.message}`, error.stack);
+            this._reportError(error, 'GatewayError');
         });
 
         this._client.on(discord.Events.Warn, message => {
             this._logger.warn(`Discord Client Warning: ${message}`);
+            this._reportError(new Error(message), 'GatewayWarning');
+        });
+
+        this._client.on(discord.Events.ShardDisconnect, () => {
+            this._isReady = false;
+        });
+
+        this._client.rest.on('rateLimited', info => {
+            const message = `Rate limited on [${info.method} ${info.route}]. Limit: ${info.limit}, Expiry: ${info.timeToReset}ms`;
+            this._logger.warn(message);
+            this._reportError(info, 'RateLimit');
         });
     }
 
     /**
-     * Registers external event handlers.
-     * This facilitates Single Responsibility Principle (SRP) by allowing other services
-     * to handle specific logic (interactions, messages) without bloating the BotClient class.
-     * @param event - The name of the Discord client event (e.g., 'interactionCreate').
-     * @param handler - The callback function to execute when the event fires.
+     * Safely executes the global error handler if one has been registered.
+     * @param error - The error or diagnostic data to report.
+     * @param context - The technical context of the error (e.g., 'GatewayError').
+     * @private
+     */
+    private async _reportError(error: any, context: string): Promise<void> {
+        if (!this._globalErrorHandler) return;
+        try {
+            await this._globalErrorHandler(error, context);
+        } catch (handlerError: any) {
+            this._logger.error(`Failed to execute global error handler: ${handlerError.message}`, handlerError.stack);
+        }
+    }
+
+    /**
+     * Registers a persistent external event handler.
+     * @param event - The name of the Discord client event.
+     * @param handler - The callback function to execute.
      */
     public registerEventHandler<K extends keyof discord.ClientEvents>(event: K, handler: (...args: discord.ClientEvents[K]) => void | Promise<void>): void {
         this._client.on(event, handler as any);
@@ -130,13 +221,17 @@ export class BotClient implements IClient, OnModuleInit, OnModuleDestroy {
     /**
      * Registers a one-time external event handler.
      * @param event - The name of the Discord client event.
-     * @param handler - The callback function to execute when the event fires.
+     * @param handler - The callback function to execute.
      */
     public registerEventOnce<K extends keyof discord.ClientEvents>(event: K, handler: (...args: discord.ClientEvents[K]) => void | Promise<void>): void {
         this._client.once(event, handler as any);
     }
 
-    private _registerInteractionHandler() {
+    /**
+     * Internal listener for interaction creation with request context wrapping.
+     * @private
+     */
+    private _registerInteractionHandler(): void {
         this._client.on(discord.Events.InteractionCreate, (interaction: discord.Interaction) => {
             const correlationId = randomUUID();
             this._requestContext.run({correlationId}, () => {
