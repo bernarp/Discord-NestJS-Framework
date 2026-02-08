@@ -45,7 +45,18 @@ export class DiscordEventDiscoveryService implements OnModuleInit {
                     if (!metadata) return;
                     const handler = method.bind(instance);
                     this._eventManager.register(metadata.event, handler, metadata.once);
+                    this._logRegistration(metadata.event, `${instance.constructor.name}.${methodName}`, metadata.once);
                 });
             });
     }
+
+    /**
+     * Internal helper for logging event registration via decorator.
+     */
+    @LogMethod({
+        level: LogLevel.DEBUG,
+        description: 'Discord Event Listener Bound',
+        logResult: false
+    })
+    private _logRegistration(event: string, target: string, once: boolean): void {}
 }

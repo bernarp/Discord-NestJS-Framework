@@ -1,12 +1,15 @@
-import {ChatInputCommandInteraction, MessageFlags, User} from 'discord.js';
-import {Inject} from '@nestjs/common';
-import {CommandSlash, LogMethod, SubCommand, Interaction, Option, CurrentUser} from '@/common/decorators/index.js';
-import {ICommand} from '@/client/interfaces/command.interface.js';
-import {CommandRegistrationType} from '@/client/enums/command-registration-type.enum.js';
-import {SUBCOMMAND_METADATA} from '@/common/decorators/keys.js';
-import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
-import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
-import {ParamsResolverService} from '@/client/interactions/params-resolver.service.js';
+import { ChatInputCommandInteraction, MessageFlags, User } from 'discord.js';
+import { Inject } from '@nestjs/common';
+import { CommandSlash, LogMethod, SubCommand, Interaction, Option, CurrentUser } from '@/common/decorators/index.js';
+import { ICommand } from '@/client/interfaces/command.interface.js';
+import { CommandRegistrationType } from '@/client/enums/command-registration-type.enum.js';
+import { SUBCOMMAND_METADATA } from '@/common/decorators/keys.js';
+import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
+import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
+import { ParamsResolverService } from '@/client/interactions/params-resolver.service.js';
+import { IUPTIME_PROVIDER_TOKEN, ISYSTEM_INFO_PROVIDER_TOKEN } from '@/common/utils/utils.token.js';
+import type { IUptimeProvider } from '@/common/utils/interfaces/IUptimeProvider.js';
+import type { ISystemInfoProvider } from '@/common/utils/interfaces/ISystemInfoProvider.js';
 
 /**
  * Example command demonstrating the use of @CommandSlash and @SubCommand decorators.
@@ -22,8 +25,10 @@ export class PingCommand implements ICommand {
 
     constructor(
         @Inject(LOG.LOGGER) private readonly _logger: ILogger,
+        @Inject(IUPTIME_PROVIDER_TOKEN) private readonly _uptimeProvider: IUptimeProvider,
+        @Inject(ISYSTEM_INFO_PROVIDER_TOKEN) private readonly _systemInfoProvider: ISystemInfoProvider,
         private readonly _paramsResolver: ParamsResolverService
-    ) {}
+    ) { }
 
     /**
      * Entry point for the /ping command.
@@ -85,17 +90,15 @@ export class PingCommand implements ICommand {
     public async onInfoPing(@Interaction() interaction: ChatInputCommandInteraction): Promise<void> {
         const latency = Date.now() - interaction.createdTimestamp;
         const apiLatency = interaction.client.ws.ping;
-        const uptime = process.uptime();
-        const hours = Math.floor(uptime / 3600);
-        const minutes = Math.floor((uptime % 3600) / 60);
-        const seconds = Math.floor(uptime % 60);
+
         await interaction.reply({
             content:
                 `**System Status**\n` +
                 `- Bot Latency: \`${latency}ms\`\n` +
                 `- API Latency: \`${apiLatency}ms\`\n` +
-                `- Uptime: \`${hours}h ${minutes}m ${seconds}s\`\n` +
-                `- Node.js: \`${process.version}\``,
+                `- Uptime: \`${this._uptimeProvider.getFormattedUptime()}\`\n` +
+                `- Node.js: \`${this._systemInfoProvider.getNodeVersion()}\`\n` +
+                `- Memory: \`${this._systemInfoProvider.getMemoryUsage()}\``,
             flags: [MessageFlags.Ephemeral]
         });
     }

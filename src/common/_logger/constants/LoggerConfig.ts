@@ -1,4 +1,4 @@
-import {LogLevel} from '../enums/LogLevel.js';
+import { LogLevel } from '../enums/LogLevel.js';
 import path from 'path';
 
 /**
@@ -109,33 +109,33 @@ export const LOG = {
     /**
      * Token for the main logger interface
      */
-    LOGGER: 'ILogger',
+    LOGGER: Symbol('ILogger'),
 
     /**
      * Token for the file writer
      */
-    FILE_WRITER: 'IFileWriter',
+    FILE_WRITER: Symbol('IFileWriter'),
 
     /**
      * Token for the context resolver
      */
-    CONTEXT_RESOLVER: 'ILogContextResolver',
+    CONTEXT_RESOLVER: Symbol('ILogContextResolver'),
 
     /**
      * Token for the log formatter
      */
-    LOG_FORMATTER: 'ILogFormatter',
+    LOG_FORMATTER: Symbol('ILogFormatter'),
 
     /**
      * Token for file writer options
      */
-    FILE_WRITER_OPTIONS: 'IFileWriterOptions',
+    FILE_WRITER_OPTIONS: Symbol('IFileWriterOptions'),
 
     /**
      * Token for application startup time (Date)
      * Provides a single source of time for all services.
      */
-    STARTUP_TIMESTAMP: 'StartupTimestamp'
+    STARTUP_TIMESTAMP: Symbol('StartupTimestamp')
 } as const;
 
 /**
