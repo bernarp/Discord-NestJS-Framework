@@ -3,6 +3,7 @@ import * as discord from 'discord.js';
 import type {ConfigType} from '@nestjs/config';
 import {discordConfig} from '@common/config-env/index.js';
 import {IClient, TGlobalErrorHandler} from '@client/interfaces/client.interface.js';
+import {DiscordActivityType, DiscordPresenceStatus, DiscordErrorContext} from '@client/enums/index.js';
 import type {InteractionsManager} from './interactions-manager.js';
 import {IINTERACTIONS_MANAGER_TOKEN} from '@/client/client.token.js';
 import {RequestContextService} from '@/common/_request-context/services/RequestContext.service.js';
@@ -135,24 +136,24 @@ export class BotClient implements IClient, OnModuleInit, OnModuleDestroy {
      * @param name - The text message for the activity.
      * @param type - The type of activity (Playing, Streaming, etc.).
      */
-    public setActivity(name: string, type: discord.ActivityType): void {
+    public setActivity(name: string, type: DiscordActivityType): void {
         if (!this._client.user) {
             this._logger.warn('Cannot set activity: Client user is not initialized');
             return;
         }
-        this._client.user.setActivity(name, {type});
+        this._client.user.setActivity(name, {type: type as any});
     }
 
     /**
      * Updates the bot's online status.
      * @param status - Online status (online, idle, dnd, invisible).
      */
-    public setStatus(status: discord.PresenceStatusData): void {
+    public setStatus(status: DiscordPresenceStatus): void {
         if (!this._client.user) {
             this._logger.warn('Cannot set status: Client user is not initialized');
             return;
         }
-        this._client.user.setPresence({status});
+        this._client.user.setPresence({status: status as any});
     }
 
     /**
@@ -175,12 +176,12 @@ export class BotClient implements IClient, OnModuleInit, OnModuleDestroy {
 
         this._client.on(discord.Events.Error, error => {
             this._logger.error(`Discord Client Error: ${error.message}`, error.stack);
-            this._reportError(error, 'GatewayError');
+            this._reportError(error, DiscordErrorContext.GatewayError);
         });
 
         this._client.on(discord.Events.Warn, message => {
             this._logger.warn(`Discord Client Warning: ${message}`);
-            this._reportError(new Error(message), 'GatewayWarning');
+            this._reportError(new Error(message), DiscordErrorContext.GatewayWarning);
         });
 
         this._client.on(discord.Events.ShardDisconnect, () => {
@@ -190,17 +191,17 @@ export class BotClient implements IClient, OnModuleInit, OnModuleDestroy {
         this._client.rest.on('rateLimited', info => {
             const message = `Rate limited on [${info.method} ${info.route}]. Limit: ${info.limit}, Expiry: ${info.timeToReset}ms`;
             this._logger.warn(message);
-            this._reportError(info, 'RateLimit');
+            this._reportError(info, DiscordErrorContext.RateLimit);
         });
     }
 
     /**
      * Safely executes the global error handler if one has been registered.
      * @param error - The error or diagnostic data to report.
-     * @param context - The technical context of the error (e.g., 'GatewayError').
+     * @param context - The technical context of the error.
      * @private
      */
-    private async _reportError(error: any, context: string): Promise<void> {
+    private async _reportError(error: any, context: DiscordErrorContext): Promise<void> {
         if (!this._globalErrorHandler) return;
         try {
             await this._globalErrorHandler(error, context);

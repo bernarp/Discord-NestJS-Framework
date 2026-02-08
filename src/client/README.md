@@ -208,14 +208,16 @@ export class ChatListener {
 
 ### Presence & Status Management
 
-You can dynamically manage the bot's appearance through the `IClient` interface.
+You can dynamically manage the bot's appearance through the `IClient` interface using built-in enums.
 
 ```typescript
+import {DiscordActivityType, DiscordPresenceStatus} from '@/client/enums/index.js';
+
 // Set activity to "Watching the server"
-client.setActivity('the server', ActivityType.Watching);
+client.setActivity('the server', DiscordActivityType.Watching);
 
 // Set status to Do Not Disturb
-client.setStatus('dnd');
+client.setStatus(DiscordPresenceStatus.DoNotDisturb);
 
 // Check connectivity
 if (client.isReady) {
@@ -225,22 +227,27 @@ if (client.isReady) {
 
 ### Global System Hooks
 
-The framework provides a centralized way to intercept critical system events such as Gateway errors and REST Rate Limits.
+The framework provides a centralized way to intercept critical system events such as Gateway errors and REST Rate Limits using the `DiscordErrorContext` enum.
 
 ```typescript
+import {DiscordErrorContext} from '@/client/enums/index.js';
+
 client.setGlobalErrorHandler((error, context) => {
-    console.error(`[System Hook] Context: ${context}`, error);
+    console.error(`[System Hook] Source: ${context}`, error);
     
-    if (context === 'RateLimit') {
+    if (context === DiscordErrorContext.RateLimit) {
         // Handle rate limit (e.g., notify monitoring, backoff logic)
+        console.warn(`Restoring in ${error.timeToReset}ms`);
     }
 });
 ```
 
-**Context Types:**
+**Available Contexts (`DiscordErrorContext`):**
 - `GatewayError`: Critical socket errors or connection failures.
 - `GatewayWarning`: Non-fatal gateway warnings.
 - `RateLimit`: Discord API rate limit triggers (REST).
+- `InteractionError`: Failures during command/interaction execution.
+- `InternalError`: General framework-level issues.
 
 ### Handler Registration Methods
 
