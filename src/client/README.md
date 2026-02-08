@@ -25,17 +25,30 @@ Implement the `ICommand` interface and use the `@CommandSlash` decorator. Metada
 | :--- | :--- |
 | `@Option(name)` | Injects a value from command options by name. |
 | `@CurrentUser()` | Injects the `User` object of the command caller. |
+| `@CurrentMember()` | Injects the `GuildMember` object of the command caller (Guild only). |
+| `@CurrentChannel()`| Injects the `TextChannel` (or other channel type) where the command was used. |
+| `@CurrentGuild()` | Injects the `Guild` object where the command was used. |
+| `@Client()` | Injects the `Client` instance of the bot. |
 | `@Interaction()` | Injects the raw `ChatInputCommandInteraction` object. |
 
 ### Example
 
 ```typescript
 import { Injectable, Inject } from '@nestjs/common';
-import { CommandSlash, SubCommand, Option, CurrentUser, Interaction, LogMethod } from '@/common/decorators';
-import { ChatInputCommandInteraction, User } from 'discord.js';
+import { ChatInputCommandInteraction, User, Guild, GuildMember } from 'discord.js';
 import { ICommand } from '@/client/interfaces';
 import { LOG } from '@/common/_logger/constants/LoggerConfig';
 import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger';
+import { 
+  CommandSlash, 
+  SubCommand, 
+  Option, 
+  CurrentUser, 
+  Interaction, 
+  LogMethod,
+  CurrentMember,
+  CurrentGuild 
+} from '@/common/decorators';
 
 @Injectable()
 @CommandSlash({
@@ -60,8 +73,13 @@ export class ModerationCommand implements ICommand {
   public async onBan(
     @Option('target') targetUser: User,
     @Option('reason') reason: string,
-    @CurrentUser() moderator: User
-  ): Promise<void> {...}
+    @CurrentUser() moderator: User,
+    @CurrentMember() moderatorMember: GuildMember,
+    @CurrentGuild() guild: Guild
+  ): Promise<void> {
+    this._logger.log(`${moderator.tag} (${moderatorMember.displayName}) is banning ${targetUser.tag} in ${guild.name} for: ${reason}`);
+    // ... logic
+  }
 }
 ```
 

@@ -1,6 +1,6 @@
-import {ChatInputCommandInteraction, MessageFlags, User} from 'discord.js';
+import {ChatInputCommandInteraction, MessageFlags, User, Client, Guild, GuildMember, TextChannel} from 'discord.js';
 import {Inject} from '@nestjs/common';
-import {CommandSlash, LogMethod, SubCommand, Interaction, Option, CurrentUser} from '@/common/decorators/index.js';
+import {CommandSlash, LogMethod, SubCommand, Interaction, Option, CurrentUser, Client as BotClient, CurrentChannel, CurrentGuild, CurrentMember} from '@/common/decorators/index.js';
 import {ICommand} from '@/client/interfaces/command.interface.js';
 import {CommandRegistrationType} from '@/client/enums/command-registration-type.enum.js';
 import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
@@ -74,6 +74,34 @@ export class PingCommand implements ICommand {
                 `- Uptime: \`${this._uptimeProvider.getFormattedUptime()}\`\n` +
                 `- Node.js: \`${this._systemInfoProvider.getNodeVersion()}\`\n` +
                 `- Memory: \`${this._systemInfoProvider.getMemoryUsage()}\``,
+            flags: [MessageFlags.Ephemeral]
+        });
+    }
+
+    /**
+     * Subcommand: /ping debug
+     * Tests all new context decorators.
+     */
+    @SubCommand({
+        name: 'debug',
+        description: 'Test all context decorators'
+    })
+    public async onDebug(
+        @BotClient() client: Client,
+        @CurrentGuild() guild: Guild,
+        @CurrentChannel() channel: TextChannel,
+        @CurrentMember() member: GuildMember,
+        @CurrentUser() user: User,
+        @Interaction() interaction: ChatInputCommandInteraction
+    ): Promise<void> {
+        await interaction.reply({
+            content:
+                `**Debug Context**\n` +
+                `- Client Latency: \`${client.ws.ping}ms\`\n` +
+                `- Guild: \`${guild.name}\` (\`${guild.id}\`)\n` +
+                `- Channel: \`${channel.name}\`\n` +
+                `- Member: \`${member.displayName}\`\n` +
+                `- User: \`${user.tag}\``,
             flags: [MessageFlags.Ephemeral]
         });
     }

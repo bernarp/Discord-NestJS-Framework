@@ -4,6 +4,8 @@ import {DISCORD_PARAMS_METADATA} from '@/common/decorators/keys.js';
 import {DiscordParamType} from '../enums/discord-param-type.enum.js';
 import {IParamMetadata} from '../interfaces/param-metadata.interface.js';
 
+import {BotException} from '@/common/exceptions/bot.exception.js';
+
 /**
  * Service responsible for resolving method arguments based on custom Discord decorators.
  */
@@ -25,11 +27,6 @@ export class ParamsResolverService {
         metadata.forEach(param => {
             args[param.index] = this._resolveValue(param, interaction);
         });
-        for (let i = 0; i < args.length; i++) {
-            if (args[i] === undefined) {
-                args[i] = undefined;
-            }
-        }
 
         return args;
     }
@@ -44,6 +41,21 @@ export class ParamsResolverService {
 
             case DiscordParamType.CURRENT_USER:
                 return interaction.user;
+
+            case DiscordParamType.CURRENT_MEMBER:
+                if (!interaction.guild) {
+                    throw new BotException('Decorator @CurrentMember() can only be used within a guild context.');
+                }
+                return interaction.member;
+
+            case DiscordParamType.CURRENT_CHANNEL:
+                return interaction.channel;
+
+            case DiscordParamType.CURRENT_GUILD:
+                return interaction.guild;
+
+            case DiscordParamType.CLIENT:
+                return interaction.client;
 
             case DiscordParamType.OPTION:
                 return this._getOptionValue(param.data!, interaction);
