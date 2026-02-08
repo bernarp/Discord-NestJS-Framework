@@ -1,26 +1,13 @@
-import { ChatInputCommandInteraction, MessageFlags, User, Client, Guild, GuildMember, TextChannel } from 'discord.js';
-import { Inject } from '@nestjs/common';
-import {
-    CommandSlash,
-    LogMethod,
-    SubCommand,
-    Interaction,
-    Option,
-    CurrentUser,
-    Client as BotClient,
-    CurrentChannel,
-    CurrentGuild,
-    CurrentMember,
-    Defer,
-    Ephemeral
-} from '@/common/decorators/index.js';
-import { ICommand } from '@/client/interfaces/command.interface.js';
-import { CommandRegistrationType } from '@/client/enums/command-registration-type.enum.js';
-import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
-import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
-import { IUPTIME_PROVIDER_TOKEN, ISYSTEM_INFO_PROVIDER_TOKEN } from '@/common/utils/utils.token.js';
-import type { IUptimeProvider } from '@/common/utils/interfaces/IUptimeProvider.js';
-import type { ISystemInfoProvider } from '@/common/utils/interfaces/ISystemInfoProvider.js';
+import {ChatInputCommandInteraction, MessageFlags, User, Client, Guild, GuildMember, TextChannel} from 'discord.js';
+import {Inject} from '@nestjs/common';
+import {CommandSlash, LogMethod, SubCommand, Interaction, Option, CurrentUser, Client as BotClient, CurrentChannel, CurrentGuild, CurrentMember, Defer, Ephemeral} from '@/common/decorators/index.js';
+import {ICommand} from '@/client/interfaces/command.interface.js';
+import {CommandRegistrationType} from '@/client/enums/command-registration-type.enum.js';
+import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
+import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
+import {IUPTIME_PROVIDER_TOKEN, ISYSTEM_INFO_PROVIDER_TOKEN} from '@/common/utils/utils.token.js';
+import type {IUptimeProvider} from '@/common/utils/interfaces/IUptimeProvider.js';
+import type {ISystemInfoProvider} from '@/common/utils/interfaces/ISystemInfoProvider.js';
 
 /**
  * Example command demonstrating the use of @CommandSlash and @SubCommand decorators.
@@ -37,7 +24,7 @@ export class PingCommand implements ICommand {
         @Inject(LOG.LOGGER) private readonly _logger: ILogger,
         @Inject(IUPTIME_PROVIDER_TOKEN) private readonly _uptimeProvider: IUptimeProvider,
         @Inject(ISYSTEM_INFO_PROVIDER_TOKEN) private readonly _systemInfoProvider: ISystemInfoProvider
-    ) { }
+    ) {}
 
     /**
      * Entry point for the /ping command.
@@ -74,7 +61,6 @@ export class PingCommand implements ICommand {
     public async onInfoPing(@Interaction() interaction: ChatInputCommandInteraction): Promise<void> {
         const latency = Date.now() - interaction.createdTimestamp;
         const apiLatency = interaction.client.ws.ping;
-
         await interaction.reply({
             content:
                 `**System Status**\n` +
@@ -125,11 +111,24 @@ export class PingCommand implements ICommand {
         description: 'Test defer and ephemeral decorators'
     })
     public async onLongPing(@Interaction() interaction: ChatInputCommandInteraction): Promise<void> {
-        // Simulate long task
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-
+        await new Promise(resolve => setTimeout(resolve, 2000));
         await interaction.editReply({
             content: 'This was a long task, but I deferred it automatically!'
+        });
+    }
+
+    /**
+     * Subcommand: /ping validate
+     * Tests Pipes and automatic type transformation.
+     */
+    @SubCommand({
+        name: 'validate',
+        description: 'Test pipes and validation'
+    })
+    public async onValidate(@Option('age') age: number, @Interaction() interaction: ChatInputCommandInteraction): Promise<void> {
+        await interaction.reply({
+            content: `**Pipe Validation Success**\n- Received: \`${age}\`\n- Runtime Type: \`${typeof age}\``,
+            flags: [MessageFlags.Ephemeral]
         });
     }
 }

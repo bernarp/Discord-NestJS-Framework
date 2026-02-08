@@ -1,4 +1,4 @@
-import { DEFER_METADATA } from './keys.js';
+import {DEFER_METADATA} from './keys.js';
 
 /**
  * Options for the @Defer decorator.

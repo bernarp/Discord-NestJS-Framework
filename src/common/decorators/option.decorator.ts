@@ -1,12 +1,16 @@
 import {DISCORD_PARAMS_METADATA} from './keys.js';
 import {DiscordParamType} from '@/client/enums/discord-param-type.enum.js';
 import {IParamMetadata} from '@/client/interfaces/param-metadata.interface.js';
+import {IDiscordPipe} from '../../common/pipes/interfaces/discord-pipe.interface.js';
 
 /**
  * Decorator to inject a specific option value from the interaction options into a method parameter.
+ * Supports transformation and validation via Pipes.
+ *
  * @param name - The name of the option to extract.
+ * @param pipes - Optional pipes to apply to the input value.
  */
-export function Option(name: string): ParameterDecorator {
+export function Option(name: string, ...pipes: (IDiscordPipe | Function)[]): ParameterDecorator {
     return (target: object, propertyKey: string | symbol | undefined, parameterIndex: number) => {
         if (!propertyKey) return;
 
@@ -15,7 +19,8 @@ export function Option(name: string): ParameterDecorator {
         metadata.push({
             type: DiscordParamType.OPTION,
             index: parameterIndex,
-            data: name
+            data: name,
+            pipes: pipes
         });
 
         Reflect.defineMetadata(DISCORD_PARAMS_METADATA, metadata, target.constructor, propertyKey);

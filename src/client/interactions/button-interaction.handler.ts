@@ -1,10 +1,10 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { ButtonInteraction, Interaction } from 'discord.js';
-import { AbstractInteractionHandler } from './base/abstract-interaction.handler.js';
-import { IButtonHandler } from '../interfaces/button-handler.interface.js';
-import { IButton } from '../interfaces/button.interface.js';
-import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
-import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
+import {Injectable, Inject} from '@nestjs/common';
+import {ButtonInteraction, Interaction} from 'discord.js';
+import {AbstractInteractionHandler} from './base/abstract-interaction.handler.js';
+import {IButtonHandler} from '../interfaces/button-handler.interface.js';
+import {IButton} from '../interfaces/button.interface.js';
+import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
+import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
 
 /**
  * @class ButtonInteractionHandler
@@ -14,10 +14,7 @@ import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
  * Matches incoming interactions with registered button entities via customId.
  */
 @Injectable()
-export class ButtonInteractionHandler
-    extends AbstractInteractionHandler<ButtonInteraction, IButton>
-    implements IButtonHandler {
-
+export class ButtonInteractionHandler extends AbstractInteractionHandler<ButtonInteraction, IButton> implements IButtonHandler {
     /**
      * @constructor
      * @param {ILogger} logger - Custom logger instance.

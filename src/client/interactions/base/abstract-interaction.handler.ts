@@ -1,6 +1,6 @@
-import { Interaction } from 'discord.js';
-import { IBaseHandler } from '../../interfaces/base-handler.interface.js';
-import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
+import {Interaction} from 'discord.js';
+import {IBaseHandler} from '../../interfaces/base-handler.interface.js';
+import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
 
 /**
  * @abstract
@@ -9,14 +9,10 @@ import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
  * @template TInteraction - The specific type of Discord Interaction.
  * @template TEntity - The internal entity type representing the handler (e.g., ICommand, IButton).
  * @description Provides a base implementation for interaction handlers using the Template Method pattern.
- * Manages an internal registry of entities and orchestrates the execution lifecycle: 
+ * Manages an internal registry of entities and orchestrates the execution lifecycle:
  * preExecute -> processEntity -> postExecute.
  */
-export abstract class AbstractInteractionHandler<
-    TInteraction extends Interaction,
-    TEntity extends { name?: string; customId?: string }
-> implements IBaseHandler {
-
+export abstract class AbstractInteractionHandler<TInteraction extends Interaction, TEntity extends {name?: string; customId?: string}> implements IBaseHandler {
     /**
      * @protected
      * @readonly
@@ -29,7 +25,7 @@ export abstract class AbstractInteractionHandler<
      * @constructor
      * @param {ILogger} _logger - Injected logger instance for the specific handler implementation.
      */
-    constructor(protected readonly _logger: ILogger) { }
+    constructor(protected readonly _logger: ILogger) {}
 
     /**
      * @public

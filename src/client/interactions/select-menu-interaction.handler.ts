@@ -1,10 +1,10 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { AnySelectMenuInteraction, Interaction } from 'discord.js';
-import { AbstractInteractionHandler } from './base/abstract-interaction.handler.js';
-import { ISelectMenuHandler } from '../interfaces/select-menu-handler.interface.js';
-import { ISelectMenu } from '../interfaces/select-menu.interface.js';
-import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
-import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
+import {Injectable, Inject} from '@nestjs/common';
+import {AnySelectMenuInteraction, Interaction} from 'discord.js';
+import {AbstractInteractionHandler} from './base/abstract-interaction.handler.js';
+import {ISelectMenuHandler} from '../interfaces/select-menu-handler.interface.js';
+import {ISelectMenu} from '../interfaces/select-menu.interface.js';
+import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
+import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
 
 /**
  * @class SelectMenuInteractionHandler
@@ -14,10 +14,7 @@ import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
  * Matches incoming interactions with registered select menu entities via customId.
  */
 @Injectable()
-export class SelectMenuInteractionHandler
-    extends AbstractInteractionHandler<AnySelectMenuInteraction, ISelectMenu>
-    implements ISelectMenuHandler {
-
+export class SelectMenuInteractionHandler extends AbstractInteractionHandler<AnySelectMenuInteraction, ISelectMenu> implements ISelectMenuHandler {
     /**
      * @constructor
      * @param {ILogger} logger - Custom logger instance.

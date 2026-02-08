@@ -1,10 +1,10 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { ModalSubmitInteraction, Interaction } from 'discord.js';
-import { AbstractInteractionHandler } from './base/abstract-interaction.handler.js';
-import { IModalHandler } from '../interfaces/modal-handler.interface.js';
-import { IModal } from '../interfaces/modal.interface.js';
-import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
-import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
+import {Injectable, Inject} from '@nestjs/common';
+import {ModalSubmitInteraction, Interaction} from 'discord.js';
+import {AbstractInteractionHandler} from './base/abstract-interaction.handler.js';
+import {IModalHandler} from '../interfaces/modal-handler.interface.js';
+import {IModal} from '../interfaces/modal.interface.js';
+import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
+import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
 
 /**
  * @class ModalInteractionHandler
@@ -14,10 +14,7 @@ import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
  * Matches incoming interactions with registered modal entities via customId.
  */
 @Injectable()
-export class ModalInteractionHandler
-    extends AbstractInteractionHandler<ModalSubmitInteraction, IModal>
-    implements IModalHandler {
-
+export class ModalInteractionHandler extends AbstractInteractionHandler<ModalSubmitInteraction, IModal> implements IModalHandler {
     /**
      * @constructor
      * @param {ILogger} logger - Custom logger instance.

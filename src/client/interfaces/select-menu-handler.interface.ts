@@ -1,5 +1,5 @@
-import { IBaseHandler } from './base-handler.interface.js';
-import { ISelectMenu } from './select-menu.interface.js';
+import {IBaseHandler} from './base-handler.interface.js';
+import {ISelectMenu} from './select-menu.interface.js';
 
 /**
  * Interface for select menu interaction handlers.

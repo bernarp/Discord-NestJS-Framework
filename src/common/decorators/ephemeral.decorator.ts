@@ -1,4 +1,4 @@
-import { EPHEMERAL_METADATA } from './keys.js';
+import {EPHEMERAL_METADATA} from './keys.js';
 
 /**
  * Decorator that marks a command or a specific subcommand to always respond ephemerally.

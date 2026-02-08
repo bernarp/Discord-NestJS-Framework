@@ -1,4 +1,4 @@
-import { Interaction } from 'discord.js';
+import {Interaction} from 'discord.js';
 
 /**
  * Base interface for all interaction handlers.

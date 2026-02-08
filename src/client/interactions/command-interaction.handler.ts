@@ -1,14 +1,14 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { ChatInputCommandInteraction, AutocompleteInteraction, Interaction } from 'discord.js';
-import { AbstractInteractionHandler } from './base/abstract-interaction.handler.js';
-import { ICommandHandler } from '../interfaces/command-handler.interface.js';
-import { ICommand } from '../interfaces/command.interface.js';
-import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
-import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
-import { ParamsResolverService } from './params-resolver.service.js';
-import { InteractionMethod } from '../enums/interaction-method.enum.js';
-import { SUBCOMMAND_METADATA, DEFER_METADATA, EPHEMERAL_METADATA } from '@/common/decorators/keys.js';
-import type { DeferOptions } from '@/common/decorators/defer.decorator.js';
+import {Injectable, Inject} from '@nestjs/common';
+import {ChatInputCommandInteraction, AutocompleteInteraction, Interaction} from 'discord.js';
+import {AbstractInteractionHandler} from './base/abstract-interaction.handler.js';
+import {ICommandHandler} from '../interfaces/command-handler.interface.js';
+import {ICommand} from '../interfaces/command.interface.js';
+import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
+import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
+import {ParamsResolverService} from './params-resolver.service.js';
+import {InteractionMethod} from '../enums/interaction-method.enum.js';
+import {SUBCOMMAND_METADATA, DEFER_METADATA, EPHEMERAL_METADATA} from '@/common/decorators/keys.js';
+import type {DeferOptions} from '@/common/decorators/defer.decorator.js';
 
 /**
  * @class CommandInteractionHandler
@@ -19,10 +19,7 @@ import type { DeferOptions } from '@/common/decorators/defer.decorator.js';
  * automatic subcommand routing, and parameter injection.
  */
 @Injectable()
-export class CommandInteractionHandler
-    extends AbstractInteractionHandler<ChatInputCommandInteraction | AutocompleteInteraction, ICommand>
-    implements ICommandHandler {
-
+export class CommandInteractionHandler extends AbstractInteractionHandler<ChatInputCommandInteraction | AutocompleteInteraction, ICommand> implements ICommandHandler {
     /**
      * @private
      * @readonly
@@ -136,9 +133,7 @@ export class CommandInteractionHandler
         const subCommandName = interaction.options.getSubcommand(false);
         const methodName = this.resolveMethodName(interaction.commandName, subCommandName);
 
-        const isEphemeral =
-            Reflect.getMetadata(EPHEMERAL_METADATA, command.constructor, methodName) === true ||
-            Reflect.getMetadata(EPHEMERAL_METADATA, command.constructor) === true;
+        const isEphemeral = Reflect.getMetadata(EPHEMERAL_METADATA, command.constructor, methodName) === true || Reflect.getMetadata(EPHEMERAL_METADATA, command.constructor) === true;
 
         const deferOptions: DeferOptions | undefined = Reflect.getMetadata(DEFER_METADATA, command.constructor, methodName);
 
@@ -159,11 +154,9 @@ export class CommandInteractionHandler
      */
     protected override async processEntity(interaction: ChatInputCommandInteraction | AutocompleteInteraction, command: ICommand): Promise<void> {
         if (!interaction.isChatInputCommand()) return;
-
         const subCommandName = interaction.options.getSubcommand(false);
         const methodName = this.resolveMethodName(interaction.commandName, subCommandName);
-
-        const args = this._paramsResolver.resolveArguments(command, methodName, interaction);
+        const args = await this._paramsResolver.resolveArguments(command, methodName, interaction);
         await (command as any)[methodName](...args);
     }
 
@@ -176,7 +169,7 @@ export class CommandInteractionHandler
     private async handleAutocomplete(interaction: AutocompleteInteraction): Promise<void> {
         const command = this._registry.get(interaction.commandName);
         if (command && command.autocomplete) {
-            const args = this._paramsResolver.resolveArguments(command, InteractionMethod.AUTOCOMPLETE, interaction);
+            const args = await this._paramsResolver.resolveArguments(command, InteractionMethod.AUTOCOMPLETE, interaction);
             await command.autocomplete(...args);
         }
     }
