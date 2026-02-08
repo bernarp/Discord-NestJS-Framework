@@ -21,25 +21,48 @@ Implement the `ICommand` interface and use the `@CommandSlash` decorator. Metada
 
 ### Parameter Decorators
 
-| Decorator          | Description                                                                     |
-| :----------------- | :------------------------------------------------------------------------------ |
-| `@Option(name, ...pipes)` | Injects a value from command options. Supports transformation/validation Pipes. |
-| `@CurrentUser()`    | Injects the `User` object of the command caller.                                |
-| `@CurrentMember()`  | Injects the `GuildMember` object of the command caller (Guild only).            |
-| `@CurrentChannel()` | Injects the `TextChannel` (or other channel type) where the command was used.     |
-| `@CurrentGuild()`   | Injects the `Guild` object where the command was used.                          |
-| `@Client()`         | Injects the `Client` instance of the bot.                                       |
-| `@Interaction()`    | Injects the raw `Interaction` object.                                           |
+| Decorator | Description |
+| :--- | :--- |
+| `@Option(options, ...pipes)` | Injects a value/object from command options. Supports auto-discovery. |
+| `@CurrentUser()` | Injects the `User` object of the command caller. |
+| `@CurrentMember()` | Injects the `GuildMember` object of the command caller (Guild only). |
+| `@CurrentChannel()` | Injects the `TextChannel` (or other channel type) where the command was used. |
+| `@CurrentGuild()` | Injects the `Guild` object where the command was used. |
+| `@Client()` | Injects the `Client` instance of the bot. |
+| `@Interaction()` | Injects the raw `Interaction` object. |
+
+#### Declarative Option Discovery
+The framework uses **Reflection** and **Metadata Scraping** to automatically register slash command options. You no longer need to manually define the `options` array in `@SubCommand`.
+
+- **Auto-Discovery**: `@SubCommand` scans parameters decorated with `@Option` and builds the Discord API schema.
+- **Smart Type Mapping**: Based on TypeScript `metatype`, the framework automatically identifies `User`, `Role`, `Attachment`, and `Channel` types.
+- **Automatic Sorting**: Discord requires all mandatory options to be placed **before** optional ones. The framework handles this sorting automatically, allowing you to arrange arguments in any order.
+
+#### Option Configuration
+The `@Option` decorator accepts either a string (name) or a configuration object:
+```typescript
+// Simple name only (auto-discovery for type)
+@Option('target') user: User
+
+// Full configuration
+@Option({
+    name: 'count',
+    description: 'Number of items',
+    required: false,
+    type: OptionType.Integer // Explicit type forcing
+}) count?: number
+```
 
 ### Data Transformation & Validation (Pipes)
 
 Pipes are used to transform input data and validate it before it reaches your method. They are asynchronous and support Dependency Injection patterns.
 
-#### Automatic Type Transformation
-If `emitDecoratorMetadata` is enabled in `tsconfig`, the framework automatically applies basic parsing based on the TypeScript type of the parameter:
+#### Automatic Smart Resolution
+If `emitDecoratorMetadata` is enabled, the framework automatically resolves complex objects from the Discord cache/API:
+- `User`, `GuildMember`, `Role`, `Attachment` -> Automatically resolved as objects.
+- `BaseChannel` (and subclasses) -> Automatically resolved as channel instances.
 - `number` -> Automatically applies `ParseFloatPipe`.
 - `boolean` -> Automatically applies `ParseBoolPipe`.
-- `string` -> Ensures the value is a string.
 
 #### Built-in Pipes
 
@@ -61,78 +84,69 @@ Manage the interaction lifecycle (replying, deferring) declaratively.
 ### Advanced Example
 
 ```typescript
-import { Injectable, Inject } from '@nestjs/common';
-import { ChatInputCommandInteraction, User, Guild, GuildMember, TextChannel } from 'discord.js';
-import { ICommand } from '@/client/interfaces/command.interface.js';
-import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
-import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
-import { 
-  CommandSlash, 
-  SubCommand, 
-  Option, 
-  CurrentUser, 
-  Interaction, 
-  CurrentMember, 
-  CurrentGuild,
-  CurrentChannel,
-  Defer,
-  Ephemeral
+import {Injectable, Inject} from '@nestjs/common';
+import {ChatInputCommandInteraction, User, Guild, GuildMember, TextChannel, Role, Attachment} from 'discord.js';
+import {ICommand} from '@/client/interfaces/command.interface.js';
+import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
+import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
+import {OptionType} from '@/client/enums/command-option.enum.js';
+import {
+    CommandSlash,
+    SubCommand,
+    Option,
+    CurrentUser,
+    Interaction,
+    CurrentMember,
+    CurrentGuild,
+    CurrentChannel,
+    Defer,
+    Ephemeral
 } from '@/common/decorators/index.js';
-import { ParseIntPipe } from '@/common/pipes/index.js';
 
 @Injectable()
 @CommandSlash({
-  name: 'economy',
-  description: 'Server economy management',
-  registration: CommandRegistrationType.GUILD
+    name: 'moderation',
+    description: 'Server moderation tools',
+    registration: CommandRegistrationType.GUILD
 })
-export class EconomyCommand implements ICommand {
-  public readonly name = 'economy';
+export class ModerationCommand implements ICommand {
+    public readonly name = 'moderation';
 
-  constructor(@Inject(LOG.LOGGER) private readonly _logger: ILogger) {}
+    constructor(@Inject(LOG.LOGGER) private readonly _logger: ILogger) {}
 
-  /**
-   * Complex example with automatic and manual pipes.
-   */
-  @SubCommand({
-    name: 'transfer',
-    description: 'Transfer coins to another user'
-  })
-  public async onTransfer(
-    @Option('target') recipient: User,
-    @Option('amount', ParseIntPipe) amount: number, // Explicit pipe usage
-    @Option('silent') silent: boolean,              // Automatic ParseBoolPipe
-    @CurrentUser() sender: User,
-    @CurrentMember() member: GuildMember,
-    @CurrentGuild() guild: Guild,
-    @CurrentChannel() channel: TextChannel,
-    @Interaction() interaction: ChatInputCommandInteraction
-  ): Promise<void> {
-    this._logger.log(`${sender.tag} is sending ${amount} coins to ${recipient.tag} in ${channel.name}`);
-    
-    // Logic here...
-    
-    await interaction.reply({
-        content: `Transferred **${amount}** to ${recipient.username}`,
-        ephemeral: silent
-    });
-  }
+    /**
+     * Options are discovered automatically from @Option decorators.
+     * TypeScript types (User, Role, etc.) are resolved into Discord objects.
+     */
+    @SubCommand({
+        name: 'ban',
+        description: 'Ban a user from the server'
+    })
+    public async onBan(
+        @Option({name: 'target', description: 'User to ban'}) target: User,
+        @Option({name: 'reason', description: 'Ban reason', required: false}) reason?: string,
+        @Option({name: 'days', description: 'Delete message history'}) days?: number,
+        @Interaction() interaction: ChatInputCommandInteraction
+    ): Promise<void> {
+        // Logic here...
+    }
 
-  /**
-   * Example of declarative lifecycle management.
-   */
-  @Ephemeral()
-  @Defer()
-  @SubCommand({
-    name: 'balance',
-    description: 'Check your current balance'
-  })
-  public async onBalance(@CurrentUser() user: User, @Interaction() interaction: ChatInputCommandInteraction): Promise<void> {
-    // Simulate long DB query
-    await new Promise(r => setTimeout(r, 2000));
-    
-    await interaction.editReply(`Your balance is **1,000** coins, ${user.username}!`);
-  }
+    /**
+     * Example with smart channel and attachment resolution.
+     */
+    @Defer()
+    @SubCommand({
+        name: 'announce',
+        description: 'Post an announcement'
+    })
+    public async onAnnounce(
+        @Option({name: 'channel', description: 'Target channel'}) channel: TextChannel,
+        @Option({name: 'text', description: 'Announcement text'}) text: string,
+        @Option({name: 'image', description: 'Optional image', required: false}) image?: Attachment,
+        @Interaction() interaction: ChatInputCommandInteraction
+    ): Promise<void> {
+        // Logic here...
+    }
 }
 ```
 
