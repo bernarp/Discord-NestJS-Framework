@@ -1,169 +1,104 @@
-# NestJS Discord Bot Architecture
+# NestJS Discord Bot Framework
 
-This project is a server-side application for a Discord bot built with **NestJS**. The architecture is based on **Event-Driven Architecture (EDA)**, **Domain-Driven Design (DDD)** principles, and a modular monolith structure.
+Architecture-centric framework for building Discord applications using NestJS. Implements Event-Driven Architecture (EDA) and Registry patterns for modularity and traceability.
 
-## Tech Stack
+## Core Principles
 
-*   **Runtime:** Node.js (v20+)
-*   **Framework:** NestJS
-*   **Discord Library:** discord.js v14
-*   **Event Bus:** RxJS / EventEmitter2
-*   **Validation:** Zod
-*   **Logging:** Custom Logger (File + Console)
-
-## Setup & Running
-
-### 1. Environment Configuration
-Create a `.env` file in the project root. Refer to the example configuration:
-
-```env
-DISCORD_TOKEN=your_bot_token
-CLIENT_ID=your_application_id
-GUILD_ID=your_development_guild_id
-
-# Logging
-LOG_LEVEL=DEBUG
-LOG_FILES_PATH=./logs
-```
-
-### 2. Installation & Execution
-
-```bash
-# Install dependencies
-pnpm install
-
-# Run in Development mode (Watch mode)
-pnpm start:dev
-
-# Build and Run in Production
-pnpm build
-pnpm start:prod
-```
+1.  **Module Decoupling:** Use `EventBusService` for inter-module communication. Prevent direct service dependencies between domain modules.
+2.  **Execution Traceability:** Propagate `correlationId` via `AsyncLocalStorage`. Maintain state across asynchronous boundaries including Event Bus and Loggers.
+3.  **Strict Inversion of Control:** Access all system components via DI Tokens. Define interfaces for all handlers and services.
 
 ---
 
-## Architectural Highlights
+## Technical Architecture
 
-### 1. Event-Driven Architecture (EDA) & Topology
-Modules interact asynchronously via the `EventBusService`. Direct coupling between feature services is minimized.
+### 1. Infrastructure Topology Verification
+The `TopologyBuilderService` executes during the bootstrap phase to validate the event-driven system integrity.
+- **Problem Solved:** Undetected broken event chains and orphan handlers.
+- **Behavior:** Scans `@Emits` and `@Subscribe` metadata. Generates a internal graph.
+- **Constraints:** Detects only metadata-defined events. Logic-based `EventEmitter` calls are not tracked.
 
-*   **`@Emits(eventName)`**: Decorator for Service/Controller methods. It intercepts the return value, wraps it in a payload, and emits it to the Event Bus.
-*   **`@Subscribe(eventName)`**: Decorator for event handlers. It automatically restores the execution context (Correlation ID).
-*   **Topology Graph**: On startup, the `TopologyBuilderService` scans metadata to build a dependency graph of events (`Producer -> Event -> Consumer`). It warns about "orphan" events (emitted but not listened to) or broken chains.
+### 2. Interaction Registry (Open/Closed Principle)
+The `InteractionsManager` delivers events to specialized handlers registered via `IDISCORD_INTERACTION_HANDLERS_TOKEN` multi-providers.
+- **Extension:** Add new interaction types (Buttons, Modals, Menus) by implementing `IBaseHandler` and registering the provider. No modification to core delivery logic required.
+- **Conflict Resolution:** Handlers must implement `supports(interaction)` for targeted routing.
 
-### 2. Request Context & Traceability
-A `RequestContext` mechanism based on `AsyncLocalStorage` is implemented.
-*   Every interaction (Slash Command) or Event generates a unique `correlationId`.
-*   This ID is automatically propagated through the entire call chain (Controller -> Service -> EventBus -> Subscriber).
-*   The Logger automatically attaches this ID to every log entry, ensuring full traceability across asynchronous flows.
+### 3. Asynchronous Pipes Pipeline
+Data validation and transformation logic resides in the Pipes layer.
+- **Automated Transformation:** Resolves `number`, `boolean`, and `string` primitives based on method signatures via `design:paramtypes` reflection.
+- **Manual Validation:** Implement `IDiscordPipe` for complex checks (e.g., database entity existence).
+- **Execution:** Pipes execute asynchronously before the target method invocation. Throws `BotException` on failure.
 
-### 3. Global Exception Handling
-*   **Global Filter:** A `GlobalExceptionFilter` catches all errors.
-*   **Interaction Safety:** The filter checks the state of the Discord Interaction (`deferred` vs `replied`) to prevent "Interaction Already Replied" errors.
-*   **Domain Exceptions:** Use `BotException` for logical errors that should be displayed to the user. System errors are masked in production.
+### 4. Contextual Logging
+The logger utilizes the current `RequestContext` to attach a unique `correlationId` to every entry. Ensure all asynchronous operations maintain the context to prevent trace fragmentation.
 
 ---
 
-## Development Guide
+## Implementation Guide
 
-### Creating a Slash Command
+### Command Definition
 
-Commands are registered declaratively using the `@CommandSlash` decorator.
+Integrate commands by implementing the `ICommand` interface and applying decorators for metadata and parameter resolution.
 
 ```typescript
 @Injectable()
 @CommandSlash({
-  name: 'ping',
-  description: 'Checks bot latency',
+  name: 'economy',
+  description: 'Manage economy state',
   registration: CommandRegistrationType.GUILD
 })
-export class PingCommand implements ICommand {
-  constructor(private readonly service: PingService) {}
-
-  public async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    // Ideally, delegate logic to a Service
-    await this.service.handlePing(interaction);
-  }
-}
-```
-
-### Using the Event Bus
-
-To maintain type safety and traceability, follow these steps when implementing EDA:
-
-#### 1. Define the Event Key
-Always use the central dictionary. **Do not use magic strings.**
-
-*File: `src/common/event-bus/events.dictionary.ts`*
-```typescript
-export const Events = {
-  USER_CREATED: 'user.created',
-  // ...
-} as const;
-```
-
-#### 2. Create the Event Class
-The payload **must** extend `BaseEvent`. This ensures the `correlationId` and `timestamp` are handled correctly by the infrastructure.
-
-*File: `src/modules/users/events/user-created.event.ts`*
-```typescript
-import { BaseEvent } from '@/common/event-bus/base.event';
-
-export class UserCreatedEvent extends BaseEvent {
-  constructor(public readonly userId: string, public readonly email: string) {
-    super(); 
-    // The BaseEvent constructor handles timestamp. 
-    // The EventBus service will inject the correlationId automatically.
-  }
-}
-```
-
-#### 3. Emitting an Event (Producer)
-Use the `@Emits` decorator. The return value of the method will be used as the event payload.
-
-```typescript
-import { Events } from '@/common/event-bus/events.dictionary';
-
-@Injectable()
-export class UserService {
+export class EconomyCommand implements ICommand {
   
-  @Emits(Events.USER_CREATED)
-  async createUser(dto: CreateUserDto) {
-    // ... business logic ...
-    const user = await this.repo.save(dto);
+  @Ephemeral()
+  @Defer()
+  @SubCommand({ name: 'transfer', description: 'Modify balance' })
+  public async onTransfer(
+    @Option('target') recipient: User,
+    @Option('amount', ParseIntPipe) amount: number,
+    @CurrentUser() sender: User,
+    @Interaction() interaction: ChatInputCommandInteraction
+  ): Promise<void> {
+    // Parameters are validated and cast to Typescript types.
+    // correlationId is preserved in the current execution context.
     
-    // Return the specific Event class instance
-    return new UserCreatedEvent(user.id, user.email);
+    await interaction.editReply(`Operation complete: ${amount} transferred.`);
   }
 }
 ```
 
-#### 4. Handling an Event (Consumer)
-Use the `@Subscribe` decorator. The `EventContextInterceptor` will ensure the logger works correctly within this asynchronous context.
+---
 
-```typescript
-import { Events } from '@/common/event-bus/events.dictionary';
+## Configuration and Deployment
 
-@Injectable()
-export class NotificationService {
-  
-  @Subscribe(Events.USER_CREATED)
-  async onUserCreated(event: UserCreatedEvent) {
-    // event.correlationId is available here and matches the ID from UserService!
-    this.logger.log(`Sending welcome email to ${event.email}`);
-  }
-}
+### 1. Environment Requirements
+Define variables in the root `.env` file:
+```env
+DISCORD_TOKEN=EXACT_BOT_TOKEN
+CLIENT_ID=APPLICATION_ID
+GUILD_ID=DEV_GUILD_ID
+LOG_LEVEL=DEBUG | INFO | WARN | ERROR
+```
+
+### 2. Execution Flow
+Install dependencies and initiate the development or production lifecycle:
+```bash
+# Setup
+npm install
+
+# Development
+npm run start:dev
+
+# Production
+npm run build
+npm run start:prod
 ```
 
 ## Project Structure
 
 ```text
 src/
-├── client/             # Discord specific logic (Gateway, Interactions Manager)
-├── common/             # Shared kernel (Logger, EventBus, Decorators, Filters)
-│   ├── event-bus/      # Core EDA implementation & Topology
-│   ├── decorators/     # @Emits, @Subscribe, @CommandSlash
-│   └── filters/        # Global exception handling
-├── modules/            # Domain features (Feature Modules)
-└── main.ts             # Entry point
+├── client/             # Delivery Layer: Handlers, Registry, Pipes
+├── common/             # Infrastructure Layer: EventBus, Logger, Topology, Context
+├── modules/            # Domain Layer: Feature-specific business logic
+└── main.ts             # Application Bootstrap
 ```

@@ -1,14 +1,14 @@
-import {Injectable, Inject} from '@nestjs/common';
-import {ChatInputCommandInteraction, AutocompleteInteraction, Interaction} from 'discord.js';
-import {AbstractInteractionHandler} from './base/abstract-interaction.handler.js';
-import {ICommandHandler} from '../interfaces/command-handler.interface.js';
-import {ICommand} from '../interfaces/command.interface.js';
-import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
-import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
-import {ParamsResolverService} from './params-resolver.service.js';
-import {InteractionMethod} from '../enums/interaction-method.enum.js';
-import {SUBCOMMAND_METADATA, DEFER_METADATA, EPHEMERAL_METADATA} from '@/common/decorators/keys.js';
-import type {DeferOptions} from '@/common/decorators/defer.decorator.js';
+import { Injectable, Inject } from '@nestjs/common';
+import { ChatInputCommandInteraction, AutocompleteInteraction, Interaction } from 'discord.js';
+import { AbstractInteractionHandler } from './base/abstract-interaction.handler.js';
+import { ICommandHandler } from '../interfaces/command-handler.interface.js';
+import { ICommand } from '../interfaces/command.interface.js';
+import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
+import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
+import { ParamsResolverService } from './params-resolver.service.js';
+import { InteractionMethod } from '../enums/interaction-method.enum.js';
+import { SUBCOMMAND_METADATA, DEFER_METADATA, EPHEMERAL_METADATA } from '@/common/decorators/keys.js';
+import type { DeferOptions } from '@/common/decorators/defer.decorator.js';
 
 /**
  * @class CommandInteractionHandler
@@ -62,7 +62,6 @@ export class CommandInteractionHandler extends AbstractInteractionHandler<ChatIn
             await this.handleAutocomplete(interaction);
             return;
         }
-
         await super.execute(interaction as ChatInputCommandInteraction);
     }
 
@@ -74,11 +73,9 @@ export class CommandInteractionHandler extends AbstractInteractionHandler<ChatIn
      */
     public registerCommand(command: ICommand): void {
         this.register(command);
-
         const subCommandMap = new Map<string, string>();
         const prototype = Object.getPrototypeOf(command);
         const propertyNames = Object.getOwnPropertyNames(prototype);
-
         for (const methodName of propertyNames) {
             const descriptor = Object.getOwnPropertyDescriptor(prototype, methodName);
             if (!descriptor || typeof descriptor.value !== 'function' || methodName === 'constructor') {
@@ -89,11 +86,9 @@ export class CommandInteractionHandler extends AbstractInteractionHandler<ChatIn
                 subCommandMap.set(subCommandMeta.name, methodName);
             }
         }
-
         if (subCommandMap.size > 0) {
             this._subCommandMaps.set(command.name, subCommandMap);
         }
-
         this._logger.debug(`Registered entity command: ${command.name}${subCommandMap.size > 0 ? ` with ${subCommandMap.size} subcommands` : ''}`);
     }
 
@@ -129,14 +124,10 @@ export class CommandInteractionHandler extends AbstractInteractionHandler<ChatIn
      */
     protected override async preExecute(interaction: ChatInputCommandInteraction | AutocompleteInteraction, command: ICommand): Promise<void> {
         if (!interaction.isChatInputCommand()) return;
-
         const subCommandName = interaction.options.getSubcommand(false);
         const methodName = this.resolveMethodName(interaction.commandName, subCommandName);
-
         const isEphemeral = Reflect.getMetadata(EPHEMERAL_METADATA, command.constructor, methodName) === true || Reflect.getMetadata(EPHEMERAL_METADATA, command.constructor) === true;
-
         const deferOptions: DeferOptions | undefined = Reflect.getMetadata(DEFER_METADATA, command.constructor, methodName);
-
         if (deferOptions) {
             await interaction.deferReply({
                 ephemeral: deferOptions.ephemeral ?? isEphemeral
