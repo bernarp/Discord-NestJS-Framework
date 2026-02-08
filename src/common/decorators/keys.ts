@@ -1,6 +1,6 @@
-export const COMMAND_METADATA = 'discord:command';
-export const SUBCOMMAND_METADATA = 'discord:subcommand';
-export const SUBCOMMAND_GROUP_METADATA = 'discord:subcommand_group';
-export const INTERNAL_SUBCOMMANDS_METADATA = 'discord:internal:subcommands';
-export const DISCORD_PARAMS_METADATA = 'discord:params';
-export const DISCORD_EVENT_METADATA = 'discord:event';
+export const COMMAND_METADATA = Symbol('discord:command');
+export const SUBCOMMAND_METADATA = Symbol('discord:subcommand');
+export const SUBCOMMAND_GROUP_METADATA = Symbol('discord:subcommand_group');
+export const INTERNAL_SUBCOMMANDS_METADATA = Symbol('discord:internal:subcommands');
+export const DISCORD_PARAMS_METADATA = Symbol('discord:params');
+export const DISCORD_EVENT_METADATA = Symbol('discord:event');
