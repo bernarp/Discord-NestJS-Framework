@@ -1,17 +1,29 @@
-import {ChatInputCommandInteraction, MessageFlags, User, Client, Guild, GuildMember, TextChannel} from 'discord.js';
-import {Inject} from '@nestjs/common';
-import {CommandSlash, LogMethod, SubCommand, Interaction, Option, CurrentUser, Client as BotClient, CurrentChannel, CurrentGuild, CurrentMember} from '@/common/decorators/index.js';
-import {ICommand} from '@/client/interfaces/command.interface.js';
-import {CommandRegistrationType} from '@/client/enums/command-registration-type.enum.js';
-import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
-import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
-import {IUPTIME_PROVIDER_TOKEN, ISYSTEM_INFO_PROVIDER_TOKEN} from '@/common/utils/utils.token.js';
-import type {IUptimeProvider} from '@/common/utils/interfaces/IUptimeProvider.js';
-import type {ISystemInfoProvider} from '@/common/utils/interfaces/ISystemInfoProvider.js';
+import { ChatInputCommandInteraction, MessageFlags, User, Client, Guild, GuildMember, TextChannel } from 'discord.js';
+import { Inject } from '@nestjs/common';
+import {
+    CommandSlash,
+    LogMethod,
+    SubCommand,
+    Interaction,
+    Option,
+    CurrentUser,
+    Client as BotClient,
+    CurrentChannel,
+    CurrentGuild,
+    CurrentMember,
+    Defer,
+    Ephemeral
+} from '@/common/decorators/index.js';
+import { ICommand } from '@/client/interfaces/command.interface.js';
+import { CommandRegistrationType } from '@/client/enums/command-registration-type.enum.js';
+import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
+import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
+import { IUPTIME_PROVIDER_TOKEN, ISYSTEM_INFO_PROVIDER_TOKEN } from '@/common/utils/utils.token.js';
+import type { IUptimeProvider } from '@/common/utils/interfaces/IUptimeProvider.js';
+import type { ISystemInfoProvider } from '@/common/utils/interfaces/ISystemInfoProvider.js';
 
 /**
  * Example command demonstrating the use of @CommandSlash and @SubCommand decorators.
- * Now supports parameter decorators like @Option and @CurrentUser.
  */
 @CommandSlash({
     name: 'ping',
@@ -25,11 +37,10 @@ export class PingCommand implements ICommand {
         @Inject(LOG.LOGGER) private readonly _logger: ILogger,
         @Inject(IUPTIME_PROVIDER_TOKEN) private readonly _uptimeProvider: IUptimeProvider,
         @Inject(ISYSTEM_INFO_PROVIDER_TOKEN) private readonly _systemInfoProvider: ISystemInfoProvider
-    ) {}
+    ) { }
 
     /**
      * Entry point for the /ping command.
-     * Called if no subcommand is provided.
      */
     public async execute(@Interaction() interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.reply({
@@ -40,7 +51,6 @@ export class PingCommand implements ICommand {
 
     /**
      * Subcommand: /ping simple
-     * Returns a basic pong reply.
      */
     @SubCommand({
         name: 'simple',
@@ -56,7 +66,6 @@ export class PingCommand implements ICommand {
 
     /**
      * Subcommand: /ping info
-     * Returns detailed bot and environment information.
      */
     @SubCommand({
         name: 'info',
@@ -80,7 +89,6 @@ export class PingCommand implements ICommand {
 
     /**
      * Subcommand: /ping debug
-     * Tests all new context decorators.
      */
     @SubCommand({
         name: 'debug',
@@ -103,6 +111,25 @@ export class PingCommand implements ICommand {
                 `- Member: \`${member.displayName}\`\n` +
                 `- User: \`${user.tag}\``,
             flags: [MessageFlags.Ephemeral]
+        });
+    }
+
+    /**
+     * Subcommand: /ping long
+     * Tests @Defer and @Ephemeral decorators.
+     */
+    @Ephemeral()
+    @Defer()
+    @SubCommand({
+        name: 'long',
+        description: 'Test defer and ephemeral decorators'
+    })
+    public async onLongPing(@Interaction() interaction: ChatInputCommandInteraction): Promise<void> {
+        // Simulate long task
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        await interaction.editReply({
+            content: 'This was a long task, but I deferred it automatically!'
         });
     }
 }

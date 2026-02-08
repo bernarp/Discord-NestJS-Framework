@@ -1,20 +1,12 @@
-import {ChatInputCommandInteraction, AutocompleteInteraction} from 'discord.js';
-import {IBaseHandler} from './base-handler.interface.js';
-import {ICommand} from './command.interface.js';
+import { IBaseHandler } from './base-handler.interface.js';
+import { ICommand } from './command.interface.js';
 
 /**
- * Interface for slash command handlers.
+ * Interface for command interaction handlers.
  */
-export interface ICommandHandler extends IBaseHandler<ChatInputCommandInteraction> {
+export interface ICommandHandler extends IBaseHandler {
     /**
-     * Optional method for handling autocomplete interactions.
-     * @param interaction The autocomplete interaction object.
-     */
-    autocomplete?(interaction: AutocompleteInteraction): Promise<void> | void;
-
-    /**
-     * Registers a specific command implementation.
-     * @param command The command to register.
+     * Registers a command entity within the handler.
      */
     registerCommand(command: ICommand): void;
 }

@@ -31,6 +31,15 @@ Implement the `ICommand` interface and use the `@CommandSlash` decorator. Metada
 | `@Client()` | Injects the `Client` instance of the bot. |
 | `@Interaction()` | Injects the raw `ChatInputCommandInteraction` object. |
 
+### Lifecycle Decorators
+
+Manage the interaction lifecycle (replying, deferring) declaratively.
+
+| Decorator | Description |
+| :--- | :--- |
+| `@Defer(options?)` | Automatically calls `interaction.deferReply()`. Options: `{ ephemeral: boolean }`. |
+| `@Ephemeral()` | Marks the command or subcommand as ephemeral. Affects `@Defer` and future auto-replies. |
+
 ### Example
 
 ```typescript

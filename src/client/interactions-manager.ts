@@ -1,32 +1,46 @@
-import {Injectable, Inject, Optional} from '@nestjs/common';
-import type {Interaction} from 'discord.js';
-import {IInteractionsManager} from './interfaces/interactions-manager.interface.js';
-import type {ICommandHandler} from './interfaces/command-handler.interface.js';
-import type {IButtonHandler} from './interfaces/button-handler.interface.js';
-import type {ISelectMenuHandler} from './interfaces/select-menu-handler.interface.js';
-import type {IModalHandler} from './interfaces/modal-handler.interface.js';
-import {ICOMMAND_HANDLER_TOKEN, IBUTTON_HANDLER_TOKEN, ISELECT_MENU_HANDLER_TOKEN, IMODAL_HANDLER_TOKEN} from '@/client/client.token.js';
-import {LogMethod, LogLevel} from '@common/decorators/log-method.decorator.js';
-import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
-import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
+import { Injectable, Inject } from '@nestjs/common';
+import type { Interaction } from 'discord.js';
+import { IInteractionsManager } from './interfaces/interactions-manager.interface.js';
+import type { ICommandHandler } from './interfaces/command-handler.interface.js';
+import type { IButtonHandler } from './interfaces/button-handler.interface.js';
+import type { ISelectMenuHandler } from './interfaces/select-menu-handler.interface.js';
+import type { IModalHandler } from './interfaces/modal-handler.interface.js';
+import {
+    ICOMMAND_HANDLER_TOKEN,
+    IBUTTON_HANDLER_TOKEN,
+    ISELECT_MENU_HANDLER_TOKEN,
+    IMODAL_HANDLER_TOKEN,
+    IDISCORD_INTERACTION_HANDLERS_TOKEN
+} from '@/client/client.token.js';
+import { LogMethod, LogLevel } from '@common/decorators/log-method.decorator.js';
+import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
+import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
+import { IBaseHandler } from './interfaces/base-handler.interface.js';
 
 /**
- * Manager responsible for routing Discord interactions to their respective handlers.
+ * @class InteractionsManager
+ * @implements IInteractionsManager
+ * @description Central coordinator for all Discord interactions.
+ * Uses the Registry pattern to discover and delegate interactions to specialized handlers.
  */
 @Injectable()
 export class InteractionsManager implements IInteractionsManager {
+    /**
+     * @constructor
+     * @param {IBaseHandler[]} _handlers - Array of all registered interaction handlers.
+     * @param {ILogger} _logger - Custom logger instance.
+     */
     constructor(
-        @Optional() @Inject(ICOMMAND_HANDLER_TOKEN) private _commandHandler: ICommandHandler,
-        @Optional() @Inject(IBUTTON_HANDLER_TOKEN) private _buttonHandler: IButtonHandler,
-        @Optional() @Inject(ISELECT_MENU_HANDLER_TOKEN) private _selectMenuHandler: ISelectMenuHandler,
-        @Optional() @Inject(IMODAL_HANDLER_TOKEN) private _modalHandler: IModalHandler,
+        @Inject(IDISCORD_INTERACTION_HANDLERS_TOKEN) private readonly _handlers: IBaseHandler[],
         @Inject(LOG.LOGGER) private readonly _logger: ILogger
-    ) {}
+    ) { }
 
     /**
-     * Main entry point for processing any incoming interaction.
-     * Dispatches the interaction to the appropriate specialized handler.
-     * @param interaction The interaction to handle.
+     * @public
+     * @param {Interaction} interaction - The incoming Discord interaction.
+     * @returns {Promise<void>}
+     * @description Main entry point for processing any incoming interaction.
+     * Automatically finds the first handler that supports the given interaction type.
      */
     @LogMethod({
         description: 'Global interaction entry point',
@@ -35,49 +49,65 @@ export class InteractionsManager implements IInteractionsManager {
     })
     public async handleInteraction(interaction: Interaction): Promise<void> {
         try {
-            if (interaction.isChatInputCommand() || interaction.isAutocomplete()) {
-                await this._commandHandler?.execute(interaction as any);
-                if (interaction.isAutocomplete() && this._commandHandler?.autocomplete) {
-                    await this._commandHandler.autocomplete(interaction);
-                }
-            } else if (interaction.isButton()) {
-                await this._buttonHandler?.execute(interaction);
-            } else if (interaction.isAnySelectMenu()) {
-                await this._selectMenuHandler?.execute(interaction);
-            } else if (interaction.isModalSubmit()) {
-                await this._modalHandler?.execute(interaction);
+            const handler = this._handlers.find(h => h.supports(interaction));
+
+            if (handler) {
+                await handler.execute(interaction);
+            } else {
+                this._logger.warn(`No handler supported for interaction type: ${interaction.type}`);
             }
         } catch (error) {
             const err = error as Error;
             this._logger.error(`Error handling interaction: ${err.message}`, err.stack);
+
             if (interaction.isRepliable()) {
                 const errorMessage = 'An internal error occurred while processing this request.';
                 if (interaction.deferred || interaction.replied) {
-                    await interaction.followUp({content: errorMessage, ephemeral: true});
+                    await interaction.followUp({ content: errorMessage, ephemeral: true });
                 } else {
-                    await interaction.reply({content: errorMessage, ephemeral: true});
+                    await interaction.reply({ content: errorMessage, ephemeral: true });
                 }
             }
         }
     }
 
+    /**
+     * @public
+     * @param {ICommandHandler} handler - The command handler.
+     * @description Legacy setter for backward compatibility or direct injection.
+     * @deprecated Use DI with IDISCORD_INTERACTION_HANDLERS_TOKEN
+     */
     public setCommandHandler(handler: ICommandHandler): void {
-        this._commandHandler = handler;
-        this._logger.debug('Global command handler set');
+        this._logger.debug('setCommandHandler called (legacy)');
     }
 
+    /**
+     * @public
+     * @param {IButtonHandler} handler - The button handler.
+     * @description Legacy setter for backward compatibility or direct injection.
+     * @deprecated Use DI with IDISCORD_INTERACTION_HANDLERS_TOKEN
+     */
     public setButtonHandler(handler: IButtonHandler): void {
-        this._buttonHandler = handler;
-        this._logger.debug('Global button handler set');
+        this._logger.debug('setButtonHandler called (legacy)');
     }
 
+    /**
+     * @public
+     * @param {ISelectMenuHandler} handler - The select menu handler.
+     * @description Legacy setter for backward compatibility or direct injection.
+     * @deprecated Use DI with IDISCORD_INTERACTION_HANDLERS_TOKEN
+     */
     public setSelectMenuHandler(handler: ISelectMenuHandler): void {
-        this._selectMenuHandler = handler;
-        this._logger.debug('Global select menu handler set');
+        this._logger.debug('setSelectMenuHandler called (legacy)');
     }
 
+    /**
+     * @public
+     * @param {IModalHandler} handler - The modal handler.
+     * @description Legacy setter for backward compatibility or direct injection.
+     * @deprecated Use DI with IDISCORD_INTERACTION_HANDLERS_TOKEN
+     */
     public setModalHandler(handler: IModalHandler): void {
-        this._modalHandler = handler;
-        this._logger.debug('Global modal handler set');
+        this._logger.debug('setModalHandler called (legacy)');
     }
 }

@@ -1,45 +1,71 @@
-import {Injectable, Inject} from '@nestjs/common';
-import {ButtonInteraction} from 'discord.js';
-import {IButtonHandler} from '../interfaces/button-handler.interface.js';
-import {IButton} from '../interfaces/button.interface.js';
-import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
-import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
+import { Injectable, Inject } from '@nestjs/common';
+import { ButtonInteraction, Interaction } from 'discord.js';
+import { AbstractInteractionHandler } from './base/abstract-interaction.handler.js';
+import { IButtonHandler } from '../interfaces/button-handler.interface.js';
+import { IButton } from '../interfaces/button.interface.js';
+import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
+import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
 
 /**
- * Specialized handler for processing all button interactions.
+ * @class ButtonInteractionHandler
+ * @extends AbstractInteractionHandler
+ * @implements IButtonHandler
+ * @description Specialized handler for processing all Discord UI button interactions.
+ * Matches incoming interactions with registered button entities via customId.
  */
 @Injectable()
-export class ButtonInteractionHandler implements IButtonHandler {
-    private readonly _buttons = new Map<string, IButton>();
-
-    constructor(@Inject(LOG.LOGGER) private readonly _logger: ILogger) {}
+export class ButtonInteractionHandler
+    extends AbstractInteractionHandler<ButtonInteraction, IButton>
+    implements IButtonHandler {
 
     /**
-     * Executes the appropriate button logic based on the custom ID.
-     * @param interaction The button interaction.
+     * @constructor
+     * @param {ILogger} logger - Custom logger instance.
      */
-    public async execute(interaction: ButtonInteraction): Promise<void> {
-        const button = this._buttons.get(interaction.customId);
-
-        if (button) {
-            try {
-                await button.execute(interaction);
-            } catch (error) {
-                const err = error as Error;
-                this._logger.error(`Error executing button ${interaction.customId}: ${err.message}`, err.stack);
-                throw error;
-            }
-        } else {
-            this._logger.warn(`Received unknown button interaction: ${interaction.customId}`);
-        }
+    constructor(@Inject(LOG.LOGGER) logger: ILogger) {
+        super(logger);
     }
 
     /**
-     * Registers a specific button implementation.
-     * @param button The button to register.
+     * @public
+     * @param {Interaction} interaction - The Discord interaction object.
+     * @returns {boolean} True if the interaction is a button.
+     * @description Determines if this handler can process the given interaction.
+     */
+    public supports(interaction: Interaction): boolean {
+        return interaction.isButton();
+    }
+
+    /**
+     * @public
+     * @param {IButton} button - The button entity to register.
+     * @returns {void}
+     * @description Registers a button entity in the local registry using its customId.
      */
     public registerButton(button: IButton): void {
-        this._buttons.set(button.customId, button);
+        this.register(button);
         this._logger.debug(`Registered entity button: ${button.customId}`);
+    }
+
+    /**
+     * @protected
+     * @override
+     * @param {IButton} button - The button entity.
+     * @returns {string} The customId of the button.
+     * @description Returns the key used for button registration.
+     */
+    protected getEntityKey(button: IButton): string {
+        return button.customId;
+    }
+
+    /**
+     * @protected
+     * @override
+     * @param {ButtonInteraction} interaction - The button interaction.
+     * @returns {string} The customId from the interaction.
+     * @description Returns the customId from the interaction to match against the registry.
+     */
+    protected getInteractionKey(interaction: ButtonInteraction): string {
+        return interaction.customId;
     }
 }
