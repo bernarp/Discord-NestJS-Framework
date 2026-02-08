@@ -30,10 +30,12 @@ Implement the `ICommand` interface and use the `@CommandSlash` decorator. Metada
 ### Example
 
 ```typescript
-import { Injectable } from '@nestjs/common';
-import { CommandSlash, SubCommand, Option, CurrentUser, Interaction } from '@/common/decorators';
+import { Injectable, Inject } from '@nestjs/common';
+import { CommandSlash, SubCommand, Option, CurrentUser, Interaction, LogMethod } from '@/common/decorators';
 import { ChatInputCommandInteraction, User } from 'discord.js';
 import { ICommand } from '@/client/interfaces';
+import { LOG } from '@/common/_logger/constants/LoggerConfig';
+import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger';
 
 @Injectable()
 @CommandSlash({
@@ -44,10 +46,13 @@ import { ICommand } from '@/client/interfaces';
 export class ModerationCommand implements ICommand {
   public readonly name = 'moderation';
 
+  constructor(@Inject(LOG.LOGGER) private readonly _logger: ILogger) {}
+
   public async execute(@Interaction() interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.reply('Use a subcommand.');
   }
 
+  @LogMethod()
   @SubCommand({
     name: 'ban',
     description: 'Ban a user from the server'
@@ -56,9 +61,7 @@ export class ModerationCommand implements ICommand {
     @Option('target') targetUser: User,
     @Option('reason') reason: string,
     @CurrentUser() moderator: User
-  ): Promise<void> {
-    console.log(`${moderator.tag} is banning ${targetUser.tag} for: ${reason}`);
-  }
+  ): Promise<void> {...}
 }
 ```
 
@@ -76,22 +79,25 @@ Use `@On` and `@Once` decorators to handle Discord gateway events declaratively.
 ### Example
 
 ```typescript
-import { Injectable } from '@nestjs/common';
-import { On, Once } from '@/common/decorators';
+import { Injectable, Inject } from '@nestjs/common';
+import { On, Once, LogMethod } from '@/common/decorators';
 import { Events, Message, Client } from 'discord.js';
+import { LOG } from '@/common/_logger/constants/LoggerConfig';
+import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger';
 
 @Injectable()
 export class ChatListener {
-  
-  @Once(Events.ClientReady)
+  constructor(@Inject(LOG.LOGGER) private readonly _logger: ILogger) {}
+
+  @Once(Events.ClientReady, {logInput: false})
   public async onReady(client: Client): Promise<void> {
-    console.log(`Bot logged in as ${client.user.tag}`);
+    this._logger.log(`Bot logged in as ${client.user.tag}`);
   }
 
   @On(Events.MessageCreate)
   public async onMessage(message: Message): Promise<void> {
     if (message.author.bot) return;
-    console.log(`Message from ${message.author.tag}: ${message.content}`);
+    this._logger.log(`Message from ${message.author.tag}: ${message.content}`);
   }
 }
 ```
