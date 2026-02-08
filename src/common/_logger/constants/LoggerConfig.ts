@@ -1,4 +1,4 @@
-import { LogLevel } from '../enums/LogLevel.js';
+import {LogLevel} from '../enums/LogLevel.js';
 import path from 'path';
 
 /**

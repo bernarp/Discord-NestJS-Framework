@@ -1,7 +1,7 @@
-import { Global, Module } from '@nestjs/common';
-import { UptimeProvider } from './services/UptimeProvider.js';
-import { SystemInfoProvider } from './services/SystemInfoProvider.js';
-import { IUPTIME_PROVIDER_TOKEN, ISYSTEM_INFO_PROVIDER_TOKEN } from './utils.token.js';
+import {Global, Module} from '@nestjs/common';
+import {UptimeProvider} from './services/UptimeProvider.js';
+import {SystemInfoProvider} from './services/SystemInfoProvider.js';
+import {IUPTIME_PROVIDER_TOKEN, ISYSTEM_INFO_PROVIDER_TOKEN} from './utils.token.js';
 
 /**
  * Global module providing utility services across the application.
@@ -20,4 +20,4 @@ import { IUPTIME_PROVIDER_TOKEN, ISYSTEM_INFO_PROVIDER_TOKEN } from './utils.tok
     ],
     exports: [IUPTIME_PROVIDER_TOKEN, ISYSTEM_INFO_PROVIDER_TOKEN]
 })
-export class UtilsModule { }
+export class UtilsModule {}

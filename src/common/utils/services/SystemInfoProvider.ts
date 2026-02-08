@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { ISystemInfoProvider } from '../interfaces/ISystemInfoProvider.js';
+import {Injectable} from '@nestjs/common';
+import {ISystemInfoProvider} from '../interfaces/ISystemInfoProvider.js';
 
 /**
  * Service responsible for gathering system environment details.

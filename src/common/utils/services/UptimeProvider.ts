@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { IUptimeProvider } from '../interfaces/IUptimeProvider.js';
+import {Injectable} from '@nestjs/common';
+import {IUptimeProvider} from '../interfaces/IUptimeProvider.js';
 
 /**
  * Service responsible for calculating and formatting bot uptime.

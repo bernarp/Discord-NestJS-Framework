@@ -1,15 +1,15 @@
-import { ChatInputCommandInteraction, MessageFlags, User } from 'discord.js';
-import { Inject } from '@nestjs/common';
-import { CommandSlash, LogMethod, SubCommand, Interaction, Option, CurrentUser } from '@/common/decorators/index.js';
-import { ICommand } from '@/client/interfaces/command.interface.js';
-import { CommandRegistrationType } from '@/client/enums/command-registration-type.enum.js';
-import { SUBCOMMAND_METADATA } from '@/common/decorators/keys.js';
-import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
-import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
-import { ParamsResolverService } from '@/client/interactions/params-resolver.service.js';
-import { IUPTIME_PROVIDER_TOKEN, ISYSTEM_INFO_PROVIDER_TOKEN } from '@/common/utils/utils.token.js';
-import type { IUptimeProvider } from '@/common/utils/interfaces/IUptimeProvider.js';
-import type { ISystemInfoProvider } from '@/common/utils/interfaces/ISystemInfoProvider.js';
+import {ChatInputCommandInteraction, MessageFlags, User} from 'discord.js';
+import {Inject} from '@nestjs/common';
+import {CommandSlash, LogMethod, SubCommand, Interaction, Option, CurrentUser} from '@/common/decorators/index.js';
+import {ICommand} from '@/client/interfaces/command.interface.js';
+import {CommandRegistrationType} from '@/client/enums/command-registration-type.enum.js';
+import {SUBCOMMAND_METADATA} from '@/common/decorators/keys.js';
+import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
+import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
+import {ParamsResolverService} from '@/client/interactions/params-resolver.service.js';
+import {IUPTIME_PROVIDER_TOKEN, ISYSTEM_INFO_PROVIDER_TOKEN} from '@/common/utils/utils.token.js';
+import type {IUptimeProvider} from '@/common/utils/interfaces/IUptimeProvider.js';
+import type {ISystemInfoProvider} from '@/common/utils/interfaces/ISystemInfoProvider.js';
 
 /**
  * Example command demonstrating the use of @CommandSlash and @SubCommand decorators.
@@ -28,7 +28,7 @@ export class PingCommand implements ICommand {
         @Inject(IUPTIME_PROVIDER_TOKEN) private readonly _uptimeProvider: IUptimeProvider,
         @Inject(ISYSTEM_INFO_PROVIDER_TOKEN) private readonly _systemInfoProvider: ISystemInfoProvider,
         private readonly _paramsResolver: ParamsResolverService
-    ) { }
+    ) {}
 
     /**
      * Entry point for the /ping command.

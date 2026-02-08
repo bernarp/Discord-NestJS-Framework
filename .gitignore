@@ -19,3 +19,6 @@ xenon-bastion-457821-k3-97abf377076a.json
 *.txt
 *.log
 *.py
+
+/src/common/decorators/Roadmap.md
+/src/client/Roadmap.md

@@ -13,43 +13,85 @@ Use these tokens to inject dependencies. Do not import concrete classes directly
 | `IBUTTON_HANDLER_TOKEN` | `IButtonHandler` | Button interaction registration. |
 | `IMODAL_HANDLER_TOKEN` | `IModalHandler` | Modal submission registration. |
 | `ISELECT_MENU_HANDLER_TOKEN` | `ISelectMenuHandler` | Select menu interaction registration. |
+| `IDISCORD_EVENT_MANAGER_TOKEN` | `IDiscordEventManager` | Discord gateway event subscription management. |
 
 ## Slash Commands Implementation
 
-Implement the `ICommand` interface and use the `@CommandSlash` decorator. Metadata is automatically extracted by `SlashCommandRegistrationService` during bootstrap. Use `@SubCommand` to handle specific sub-command logic within the same class.
+Implement the `ICommand` interface and use the `@CommandSlash` decorator. Metadata is automatically extracted by `SlashCommandRegistrationService` during bootstrap. The framework supports reflection-based parameter injection via decorators.
 
-### Interface & Decorators
+### Parameter Decorators
+
+| Decorator | Description |
+| :--- | :--- |
+| `@Option(name)` | Injects a value from command options by name. |
+| `@CurrentUser()` | Injects the `User` object of the command caller. |
+| `@Interaction()` | Injects the raw `ChatInputCommandInteraction` object. |
+
+### Example
 
 ```typescript
-import { ChatInputCommandInteraction, AutocompleteInteraction } from 'discord.js';
-import { CommandSlash, SubCommand } from '@/common/decorators';
+import { Injectable } from '@nestjs/common';
+import { CommandSlash, SubCommand, Option, CurrentUser, Interaction } from '@/common/decorators';
+import { ChatInputCommandInteraction, User } from 'discord.js';
+import { ICommand } from '@/client/interfaces';
 
-// 1. Define Command Metadata
+@Injectable()
 @CommandSlash({
-  name: 'settings',
-  description: 'Manage bot settings',
+  name: 'moderation',
+  description: 'Moderation utilities',
   registration: CommandRegistrationType.GUILD
 })
-export class SettingsCommand implements ICommand {
-  public readonly name = 'settings';
+export class ModerationCommand implements ICommand {
+  public readonly name = 'moderation';
 
-  // 2. Default Execution Logic
-  public async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    // Logic for top-level command or routing if needed
+  public async execute(@Interaction() interaction: ChatInputCommandInteraction): Promise<void> {
+    await interaction.reply('Use a subcommand.');
   }
 
-  // 3. Sub-Command Implementation
   @SubCommand({
-    name: 'view',
-    description: 'View current settings'
+    name: 'ban',
+    description: 'Ban a user from the server'
   })
-  public async onViewSettings(interaction: ChatInputCommandInteraction): Promise<void> {
-    // Logic specifically for '/settings view'
+  public async onBan(
+    @Option('target') targetUser: User,
+    @Option('reason') reason: string,
+    @CurrentUser() moderator: User
+  ): Promise<void> {
+    console.log(`${moderator.tag} is banning ${targetUser.tag} for: ${reason}`);
+  }
+}
+```
+
+## Event Listeners
+
+Use `@On` and `@Once` decorators to handle Discord gateway events declaratively. The `DiscordEventDiscoveryService` automatically discovers and registers these listeners during module initialization.
+
+### Event Decorators
+
+| Decorator | Description |
+| :--- | :--- |
+| `@On(event)` | Registers a persistent event listener. |
+| `@Once(event)` | Registers a one-time event listener. |
+
+### Example
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { On, Once } from '@/common/decorators';
+import { Events, Message, Client } from 'discord.js';
+
+@Injectable()
+export class ChatListener {
+  
+  @Once(Events.ClientReady)
+  public async onReady(client: Client): Promise<void> {
+    console.log(`Bot logged in as ${client.user.tag}`);
   }
 
-  // 4. Optional Autocomplete
-  public async autocomplete?(interaction: AutocompleteInteraction): Promise<void> {
-    // Handle autocomplete requests
+  @On(Events.MessageCreate)
+  public async onMessage(message: Message): Promise<void> {
+    if (message.author.bot) return;
+    console.log(`Message from ${message.author.tag}: ${message.content}`);
   }
 }
 ```
@@ -65,6 +107,8 @@ export class SettingsCommand implements ICommand {
 | `getUser()` | `ClientUser | null` | Returns the current bot user instance (available after start). |
 | `getPing()` | `number` | Returns the current WebSocket latency (ms). |
 | `getStatus()` | `string` | Returns the current connection status string. |
+| `registerEventHandler<K>(event, handler)` | `void` | Registers a persistent event handler for the specified event. |
+| `registerEventOnce<K>(event, handler)` | `void` | Registers a one-time event handler for the specified event. |
 
 ### Handler Registration Methods
 
@@ -81,4 +125,5 @@ Use these methods to register interaction logic dynamically (e.g., in `onModuleI
 
 1.  **Event Routing**: `InteractionsManager` intercepts `interactionCreate`, generates a `correlationId` (via `RequestContextService`), and routes the event.
 2.  **Command Matching**: Routes to `CommandInteractionHandler` based on `commandName`.
-3.  **Component Matching**: Routes to specific handlers (Button/Modal) based on strict `customId` matching.
+3.  **Parameter Injection**: `ParamsResolverService` extracts decorated parameters and injects them into the method.
+4.  **Component Matching**: Routes to specific handlers (Button/Modal) based on strict `customId` matching.
