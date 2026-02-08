@@ -6,88 +6,132 @@ This module implements an abstraction layer over `discord.js` to manage the Disc
 
 Use these tokens to inject dependencies. Do not import concrete classes directly.
 
-| Token | Interface | Purpose |
-| :--- | :--- | :--- |
-| `ICLIENT_TOKEN` | `IClient` | Lifecycle management (start/stop) and client status. |
-| `ICOMMAND_HANDLER_TOKEN` | `ICommandHandler` | Dynamic command registration and execution. |
-| `IBUTTON_HANDLER_TOKEN` | `IButtonHandler` | Button interaction registration. |
-| `IMODAL_HANDLER_TOKEN` | `IModalHandler` | Modal submission registration. |
-| `ISELECT_MENU_HANDLER_TOKEN` | `ISelectMenuHandler` | Select menu interaction registration. |
-| `IDISCORD_EVENT_MANAGER_TOKEN` | `IDiscordEventManager` | Discord gateway event subscription management. |
+| Token                        | Interface               | Purpose                                                 |
+| :--------------------------- | :---------------------- | :------------------------------------------------------ |
+| `ICLIENT_TOKEN`              | `IClient`               | Lifecycle management (start/stop) and client status.    |
+| `ICOMMAND_HANDLER_TOKEN`     | `ICommandHandler`       | Dynamic command registration and execution.             |
+| `IBUTTON_HANDLER_TOKEN`      | `IButtonHandler`        | Button interaction registration.                        |
+| `IMODAL_HANDLER_TOKEN`       | `IModalHandler`         | Modal submission registration.                          |
+| `ISELECT_MENU_HANDLER_TOKEN` | `ISelectMenuHandler`    | Select menu interaction registration.                   |
+| `IDISCORD_EVENT_MANAGER_TOKEN`| `IDiscordEventManager`  | Discord gateway event subscription management.          |
 
 ## Slash Commands Implementation
 
-Implement the `ICommand` interface and use the `@CommandSlash` decorator. Metadata is automatically extracted by `SlashCommandRegistrationService` during bootstrap. The framework supports reflection-based parameter injection via decorators.
+Implement the `ICommand` interface and use the `@CommandSlash` decorator. Metadata is automatically extracted by `SlashCommandRegistrationService` during bootstrap. The framework supports reflection-based parameter injection via decorators and data validation via Pipes.
 
 ### Parameter Decorators
 
-| Decorator | Description |
-| :--- | :--- |
-| `@Option(name)` | Injects a value from command options by name. |
-| `@CurrentUser()` | Injects the `User` object of the command caller. |
-| `@CurrentMember()` | Injects the `GuildMember` object of the command caller (Guild only). |
-| `@CurrentChannel()`| Injects the `TextChannel` (or other channel type) where the command was used. |
-| `@CurrentGuild()` | Injects the `Guild` object where the command was used. |
-| `@Client()` | Injects the `Client` instance of the bot. |
-| `@Interaction()` | Injects the raw `ChatInputCommandInteraction` object. |
+| Decorator          | Description                                                                     |
+| :----------------- | :------------------------------------------------------------------------------ |
+| `@Option(name, ...pipes)` | Injects a value from command options. Supports transformation/validation Pipes. |
+| `@CurrentUser()`    | Injects the `User` object of the command caller.                                |
+| `@CurrentMember()`  | Injects the `GuildMember` object of the command caller (Guild only).            |
+| `@CurrentChannel()` | Injects the `TextChannel` (or other channel type) where the command was used.     |
+| `@CurrentGuild()`   | Injects the `Guild` object where the command was used.                          |
+| `@Client()`         | Injects the `Client` instance of the bot.                                       |
+| `@Interaction()`    | Injects the raw `Interaction` object.                                           |
+
+### Data Transformation & Validation (Pipes)
+
+Pipes are used to transform input data and validate it before it reaches your method. They are asynchronous and support Dependency Injection patterns.
+
+#### Automatic Type Transformation
+If `emitDecoratorMetadata` is enabled in `tsconfig`, the framework automatically applies basic parsing based on the TypeScript type of the parameter:
+- `number` -> Automatically applies `ParseFloatPipe`.
+- `boolean` -> Automatically applies `ParseBoolPipe`.
+- `string` -> Ensures the value is a string.
+
+#### Built-in Pipes
+
+| Pipe              | Description                                                                 |
+| :---------------- | :-------------------------------------------------------------------------- |
+| `ParseIntPipe`    | Converts a string/number to an integer. Throws `BotException` on failure.   |
+| `ParseFloatPipe`  | Converts a string/number to a float. Throws `BotException` on failure.      |
+| `ParseBoolPipe`   | Converts 1/0, "true"/"false" to boolean. Throws `BotException` on failure.  |
 
 ### Lifecycle Decorators
 
 Manage the interaction lifecycle (replying, deferring) declaratively.
 
-| Decorator | Description |
-| :--- | :--- |
+| Decorator          | Description                                                                          |
+| :----------------- | :----------------------------------------------------------------------------------- |
 | `@Defer(options?)` | Automatically calls `interaction.deferReply()`. Options: `{ ephemeral: boolean }`. |
-| `@Ephemeral()` | Marks the command or subcommand as ephemeral. Affects `@Defer` and future auto-replies. |
+| `@Ephemeral()`      | Marks the command or subcommand as ephemeral. Affects `@Defer` and future auto-replies. |
 
-### Example
+### Advanced Example
 
 ```typescript
 import { Injectable, Inject } from '@nestjs/common';
-import { ChatInputCommandInteraction, User, Guild, GuildMember } from 'discord.js';
-import { ICommand } from '@/client/interfaces';
-import { LOG } from '@/common/_logger/constants/LoggerConfig';
-import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger';
+import { ChatInputCommandInteraction, User, Guild, GuildMember, TextChannel } from 'discord.js';
+import { ICommand } from '@/client/interfaces/command.interface.js';
+import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
+import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
 import { 
   CommandSlash, 
   SubCommand, 
   Option, 
   CurrentUser, 
   Interaction, 
-  LogMethod,
-  CurrentMember,
-  CurrentGuild 
-} from '@/common/decorators';
+  CurrentMember, 
+  CurrentGuild,
+  CurrentChannel,
+  Defer,
+  Ephemeral
+} from '@/common/decorators/index.js';
+import { ParseIntPipe } from '@/common/pipes/index.js';
 
 @Injectable()
 @CommandSlash({
-  name: 'moderation',
-  description: 'Moderation utilities',
+  name: 'economy',
+  description: 'Server economy management',
   registration: CommandRegistrationType.GUILD
 })
-export class ModerationCommand implements ICommand {
-  public readonly name = 'moderation';
+export class EconomyCommand implements ICommand {
+  public readonly name = 'economy';
 
   constructor(@Inject(LOG.LOGGER) private readonly _logger: ILogger) {}
 
-  public async execute(@Interaction() interaction: ChatInputCommandInteraction): Promise<void> {
-    await interaction.reply('Use a subcommand.');
+  /**
+   * Complex example with automatic and manual pipes.
+   */
+  @SubCommand({
+    name: 'transfer',
+    description: 'Transfer coins to another user'
+  })
+  public async onTransfer(
+    @Option('target') recipient: User,
+    @Option('amount', ParseIntPipe) amount: number, // Explicit pipe usage
+    @Option('silent') silent: boolean,              // Automatic ParseBoolPipe
+    @CurrentUser() sender: User,
+    @CurrentMember() member: GuildMember,
+    @CurrentGuild() guild: Guild,
+    @CurrentChannel() channel: TextChannel,
+    @Interaction() interaction: ChatInputCommandInteraction
+  ): Promise<void> {
+    this._logger.log(`${sender.tag} is sending ${amount} coins to ${recipient.tag} in ${channel.name}`);
+    
+    // Logic here...
+    
+    await interaction.reply({
+        content: `Transferred **${amount}** to ${recipient.username}`,
+        ephemeral: silent
+    });
   }
 
-  @LogMethod()
+  /**
+   * Example of declarative lifecycle management.
+   */
+  @Ephemeral()
+  @Defer()
   @SubCommand({
-    name: 'ban',
-    description: 'Ban a user from the server'
+    name: 'balance',
+    description: 'Check your current balance'
   })
-  public async onBan(
-    @Option('target') targetUser: User,
-    @Option('reason') reason: string,
-    @CurrentUser() moderator: User,
-    @CurrentMember() moderatorMember: GuildMember,
-    @CurrentGuild() guild: Guild
-  ): Promise<void> {
-    this._logger.log(`${moderator.tag} (${moderatorMember.displayName}) is banning ${targetUser.tag} in ${guild.name} for: ${reason}`);
-    // ... logic
+  public async onBalance(@CurrentUser() user: User, @Interaction() interaction: ChatInputCommandInteraction): Promise<void> {
+    // Simulate long DB query
+    await new Promise(r => setTimeout(r, 2000));
+    
+    await interaction.editReply(`Your balance is **1,000** coins, ${user.username}!`);
   }
 }
 ```
@@ -98,25 +142,25 @@ Use `@On` and `@Once` decorators to handle Discord gateway events declaratively.
 
 ### Event Decorators
 
-| Decorator | Description |
-| :--- | :--- |
-| `@On(event)` | Registers a persistent event listener. |
-| `@Once(event)` | Registers a one-time event listener. |
+| Decorator   | Description                             |
+| :---------- | :-------------------------------------- |
+| `@On(event)`| Registers a persistent event listener.  |
+| `@Once(event)`| Registers a one-time event listener.  |
 
 ### Example
 
 ```typescript
 import { Injectable, Inject } from '@nestjs/common';
-import { On, Once, LogMethod } from '@/common/decorators';
+import { On, Once } from '@/common/decorators/index.js';
 import { Events, Message, Client } from 'discord.js';
-import { LOG } from '@/common/_logger/constants/LoggerConfig';
-import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger';
+import { LOG } from '@/common/_logger/constants/LoggerConfig.js';
+import type { ILogger } from '@/common/_logger/interfaces/ICustomLogger.js';
 
 @Injectable()
 export class ChatListener {
   constructor(@Inject(LOG.LOGGER) private readonly _logger: ILogger) {}
 
-  @Once(Events.ClientReady, {logInput: false})
+  @Once(Events.ClientReady)
   public async onReady(client: Client): Promise<void> {
     this._logger.log(`Bot logged in as ${client.user.tag}`);
   }
@@ -124,7 +168,7 @@ export class ChatListener {
   @On(Events.MessageCreate)
   public async onMessage(message: Message): Promise<void> {
     if (message.author.bot) return;
-    this._logger.log(`Message from ${message.author.tag}: ${message.content}`);
+    this._logger.debug(`Message in ${message.guild?.name}: ${message.content}`);
   }
 }
 ```
@@ -133,30 +177,31 @@ export class ChatListener {
 
 ### BotClient Methods (`ICLIENT_TOKEN`)
 
-| Method | Return Type | Description |
-| :--- | :--- | :--- |
-| `start()` | `Promise<void>` | Initializes the WebSocket connection to the Discord Gateway. |
-| `shutdown()` | `Promise<void>` | Terminates the connection and cleans up resources. |
-| `getUser()` | `ClientUser | null` | Returns the current bot user instance (available after start). |
-| `getPing()` | `number` | Returns the current WebSocket latency (ms). |
-| `getStatus()` | `string` | Returns the current connection status string. |
-| `registerEventHandler<K>(event, handler)` | `void` | Registers a persistent event handler for the specified event. |
-| `registerEventOnce<K>(event, handler)` | `void` | Registers a one-time event handler for the specified event. |
+| Method                                      | Return Type           | Description                                                        |
+| :------------------------------------------ | :-------------------- | :----------------------------------------------------------------- |
+| `start()`                                   | `Promise<void>`       | Initializes the WebSocket connection to the Discord Gateway.        |
+| `shutdown()`                                | `Promise<void>`       | Terminates the connection and cleans up resources.                  |
+| `getUser()`                                 | `ClientUser \| null`   | Returns the current bot user instance (available after start).      |
+| `getPing()`                                 | `number`              | Returns the current WebSocket latency (ms).                        |
+| `getStatus()`                               | `string`              | Returns the current connection status string.                      |
+| `registerEventHandler<K>(event, handler)`   | `void`                | Registers a persistent event handler for the specified event.      |
+| `registerEventOnce<K>(event, handler)`      | `void`                | Registers a one-time event handler for the specified event.        |
 
 ### Handler Registration Methods
 
 Use these methods to register interaction logic dynamically (e.g., in `onModuleInit`).
 
-| Method | Arguments | Description |
-| :--- | :--- | :--- |
-| `registerCommand` | `instance: ICommand` | Registers a command manually (auto-handled by decorators usually). |
-| `registerButton` | `instance: IButton` | Maps a `customId` to a button handler instance. |
-| `registerModal` | `instance: IModal` | Maps a `customId` to a modal submission handler. |
-| `registerSelectMenu`| `instance: ISelectMenu` | Maps a `customId` to a select menu handler. |
+| Method               | Arguments            | Description                                                     |
+| :------------------- | :------------------- | :-------------------------------------------------------------- |
+| `registerCommand`    | `instance: ICommand` | Registers a command manually (auto-handled by decorators usually). |
+| `registerButton`     | `instance: IButton`  | Maps a `customId` to a button handler instance.                |
+| `registerModal`      | `instance: IModal`   | Maps a `customId` to a modal submission handler.                 |
+| `registerSelectMenu` | `instance: ISelectMenu`| Maps a `customId` to a select menu handler.                  |
 
 ### Execution Flow
 
-1.  **Event Routing**: `InteractionsManager` intercepts `interactionCreate`, generates a `correlationId` (via `RequestContextService`), and routes the event.
-2.  **Command Matching**: Routes to `CommandInteractionHandler` based on `commandName`.
-3.  **Parameter Injection**: `ParamsResolverService` extracts decorated parameters and injects them into the method.
-4.  **Component Matching**: Routes to specific handlers (Button/Modal) based on strict `customId` matching.
+1.  **Event Routing**: `InteractionsManager` intercepts `interactionCreate`, generates a `correlationId`, and routes the event.
+2.  **Handler Selection**: Registry pattern finds the appropriate handler (Command, Button, etc.) via `supports()` check.
+3.  **Parameter Injection**: `ParamsResolverService` extracts decorated parameters.
+4.  **Pipes Pipeline**: Input data is passed through a chain of asynchronous Pipes (automatic transformation + manual pipes).
+5.  **Method Invocation**: The target class method is invoked with resolved and validated arguments.
