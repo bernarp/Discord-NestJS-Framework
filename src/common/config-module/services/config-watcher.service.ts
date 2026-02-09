@@ -1,4 +1,4 @@
-import {Injectable, Inject, forwardRef} from '@nestjs/common';
+import {Injectable, Inject} from '@nestjs/common';
 import * as chokidar from 'chokidar';
 import * as path from 'path';
 import type {IConfigModuleOptions} from '../interfaces/config-module-options.interface.js';
@@ -8,7 +8,6 @@ import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
 import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
 import type {IConfigWatcherService} from '../interfaces/config-watcher.interface.js';
 import type {IConfigService} from '../interfaces/config-service.interface.js';
-import {ConfigService} from './config.service.js';
 
 /**
  * Service responsible for watching configuration files and triggering reloads.
@@ -54,7 +53,7 @@ export class ConfigWatcherService implements IConfigWatcherService {
             const key = fileName.replace(/\.(yaml|yml|json)$/, '');
 
             this._logger.log(`Detected change in [${fileName}]. Triggering reload...`, ConfigContext.SERVICE);
-            this._configService.reload(key).catch(err => {
+            this._configService.reload(key).catch((err: Error) => {
                 this._logger.error(`Failed to hot-reload [${key}]: ${err.message}`, undefined, ConfigContext.SERVICE);
             });
         });

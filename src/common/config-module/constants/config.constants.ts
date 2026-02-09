@@ -16,3 +16,12 @@ export enum ConfigContext {
     SERVICE = 'ConfigService',
     LOADER = 'ConfigLoader'
 }
+
+/**
+ * Internal constants for configuration processing.
+ */
+export enum ConfigInternal {
+    ENV_DELIMITER = '__',
+    PATH_DELIMITER = '.',
+    RELOAD_NOT_IMPLEMENTED = 'Reloading is not fully implemented yet'
+}

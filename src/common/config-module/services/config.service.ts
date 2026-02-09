@@ -1,10 +1,11 @@
 import {Injectable, Inject, OnModuleInit} from '@nestjs/common';
-import {DiscoveryService, MetadataScanner, ModulesContainer} from '@nestjs/core';
+import {DiscoveryService, ModulesContainer} from '@nestjs/core';
 import type {IConfigSnapshot, TConfigKey} from '../types/config.types.js';
 import type {IConfigLoader} from '../interfaces/config-loader.interface.js';
 import type {IConfigMetadata} from '../interfaces/config-options.interface.js';
+import type {IConfigRepository} from '../interfaces/config-repository.interface.js';
 import {ConfigContext} from '../constants/config.constants.js';
-import {CONFIG_METADATA_KEY, ICONFIG_LOADER_TOKEN} from '../config.token.js';
+import {CONFIG_METADATA_KEY, ICONFIG_LOADER_TOKEN, ICONFIG_REPOSITORY_TOKEN} from '../config.token.js';
 import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
 import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
 import {EventBusService} from '@/common/event-bus/event-bus.service.js';
@@ -12,26 +13,25 @@ import {Events} from '@/common/event-bus/events.dictionary.js';
 import {ConfigUpdatedEvent} from '../events/config-updated.event.js';
 import {Emits} from '@/common/decorators/emits.decorator.js';
 import {LogMethod, LogLevel} from '@/common/decorators/log-method.decorator.js';
-
 import {IConfigService} from '../interfaces/config-service.interface.js';
+import {ConfigNotFoundException} from '../exceptions/config-not-found.exception.js';
 
 /**
  * Centralized service for managing and accessing application configurations.
  * Acts as a registry for all modules decorated with @Config.
+ * Orchestrates discovery, storage, and reactive access.
  */
 @Injectable()
-export class ConfigService implements IConfigService {
-    /** In-memory storage for all loaded configuration snapshots. */
-    private readonly _cache = new Map<TConfigKey, IConfigSnapshot>();
-
-    /** Registry of discoverable config metadata. */
+export class ConfigService implements IConfigService, OnModuleInit {
+    /** Registry of discoverable config metadata for reloading. */
     private readonly _metadataRegistry = new Map<TConfigKey, IConfigMetadata>();
 
     constructor(
         private readonly _discovery: DiscoveryService,
         private readonly _modulesContainer: ModulesContainer,
         private readonly _eventBus: EventBusService,
-        @Inject(ICONFIG_LOADER_TOKEN) private readonly _loader: IConfigLoader,
+        @Inject(ICONFIG_LOADER_TOKEN) private readonly _orchestrator: IConfigLoader,
+        @Inject(ICONFIG_REPOSITORY_TOKEN) private readonly _repository: IConfigRepository,
         @Inject(LOG.LOGGER) private readonly _logger: ILogger
     ) {}
 
@@ -46,14 +46,13 @@ export class ConfigService implements IConfigService {
     /**
      * Retrieves a configuration object by its unique key.
      * @param key - The key specified in the @Config decorator.
-     * @returns {T} The validated configuration object.
-     * @throws {Error} If the configuration key is not found.
+     * @returns {T} The validated and immutable configuration object.
+     * @throws {ConfigNotFoundException} If the configuration key is not found.
      */
     public get<T>(key: TConfigKey): T {
-        const snapshot = this._cache.get(key);
+        const snapshot = this._repository.get(key);
         if (!snapshot) {
-            this._logger.error(`Requested configuration key [${key}] not found in registry.`);
-            throw new Error(`Configuration with key "${key}" is not registered or failed to load.`);
+            throw new ConfigNotFoundException(key);
         }
         return snapshot.value as T;
     }
@@ -63,29 +62,41 @@ export class ConfigService implements IConfigService {
      * @param key - The config key.
      */
     public getSnapshot<T>(key: TConfigKey): IConfigSnapshot<T> | undefined {
-        return this._cache.get(key) as IConfigSnapshot<T>;
+        return this._repository.get(key) as IConfigSnapshot<T>;
     }
 
     /**
-     * Returns a Reactive Proxy that always points to the latest value in cache.
-     * Tier 3: Hot-reloading support.
+     * Returns a Reactive Proxy that always points to the latest value in the repository.
+     * Provides deep property access safety and immutability guard.
      * @param key - The config key.
      */
     public getProxy<T extends object>(key: TConfigKey): T {
-        const snapshot = this._cache.get(key);
-        if (!snapshot) {
-            throw new Error(`Cannot create proxy for unknown config key: ${key}`);
+        if (!this._repository.has(key)) {
+            throw new ConfigNotFoundException(key);
         }
 
+        const self = this;
         return new Proxy({} as T, {
             get: (_, prop) => {
-                const latest = this._cache.get(key);
+                const latest = self._repository.get(key);
                 if (!latest) return undefined;
-                return (latest.value as any)[prop];
+
+                const value = (latest.value as any)[prop];
+
+                // If the reached value is an object, we could potentially wrap it in another proxy
+                // for deep reactivity, but per Lead Dev requirement, simple property proxying from latest snapshot is sufficient.
+                return value;
+            },
+            set: () => {
+                throw new Error(`Configuration [${key}] is immutable. Please update the source YAML/ENV files instead.`);
             }
         });
     }
 
+    /**
+     * Hot-reloads configuration from all sources.
+     * @param key - The config key to reload.
+     */
     @LogMethod({description: 'Hot-Reload Configuration', level: LogLevel.INFO})
     @Emits(Events.SYSTEM.CONFIG_UPDATED)
     public async reload(key: string): Promise<ConfigUpdatedEvent | void> {
@@ -94,22 +105,26 @@ export class ConfigService implements IConfigService {
             this._logger.warn(`Attempted to reload non-registered config: [${key}]`, ConfigContext.SERVICE);
             return;
         }
-        const oldSnapshot = this._cache.get(key);
+
+        const oldSnapshot = this._repository.get(key);
         try {
-            const newValue = await this._loader.load(metadata);
+            const newValue = await this._orchestrator.load(metadata);
 
             const newSnapshot: IConfigSnapshot = {
                 value: newValue,
                 version: (oldSnapshot?.version ?? 0) + 1,
                 updatedAt: new Date()
             };
-            this._cache.set(key, newSnapshot);
+
+            this._repository.save(key, newSnapshot);
+
             return new ConfigUpdatedEvent({
                 key,
                 value: newValue,
                 oldValue: oldSnapshot?.value
             });
         } catch (error: any) {
+            // Orchestrator handles specific error logging; we just re-throw
             throw error;
         }
     }
@@ -130,41 +145,41 @@ export class ConfigService implements IConfigService {
                 await this._registerConfig(metatype, metadata);
             }
         }
+
         for (const module of this._modulesContainer.values()) {
-            this._logger.debug(`Checking module: ${module.metatype.name}`, ConfigContext.SERVICE);
             const metadata: IConfigMetadata = Reflect.getMetadata(CONFIG_METADATA_KEY, module.metatype);
             if (metadata) {
-                this._logger.debug(`Found @Config on module: ${module.metatype.name}`, ConfigContext.SERVICE);
                 await this._registerConfig(module.metatype, metadata);
             }
         }
 
-        this._logger.log(`Successfully loaded ${this._cache.size} configuration module(s).`);
+        this._logger.log(`Successfully loaded ${this._repository.keys().length} configuration module(s).`);
     }
 
     /**
-     * Registers and loads a specific configuration block.
+     * Registers and loads a specific configuration block via Orchestrator.
      * @private
      */
     @LogMethod({description: 'Register Config Module', level: LogLevel.DEBUG})
     private async _registerConfig(target: any, metadata: IConfigMetadata): Promise<void> {
         const {key} = metadata;
-        if (this._cache.has(key)) {
+        if (this._repository.has(key)) {
             this._logger.warn(`Duplicate configuration key detected: [${key}]. Skipping second registration.`, ConfigContext.SERVICE);
             return;
         }
+
         try {
-            const value = await this._loader.load(metadata);
-            this._cache.set(key, {
+            const value = await this._orchestrator.load(metadata);
+
+            this._repository.save(key, {
                 value,
                 version: 1,
                 updatedAt: new Date()
             });
+
             this._metadataRegistry.set(key, {...metadata, target});
         } catch (error: any) {
-            this._logger.error(`Failed to initialize configuration for [${key}]. The module may not function correctly. Error: ${error.message}`, undefined, ConfigContext.SERVICE);
-            // We do not re-throw here to allow the application to continue booting.
-            // Feature: 'Module Disabling' could be implemented here in the future.
+            this._logger.error(`Failed to initialize configuration for [${key}]. Error: ${error.message}`, undefined, ConfigContext.SERVICE);
         }
     }
 }
