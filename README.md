@@ -1,6 +1,3 @@
-Here is the updated **README.md** in English, with the specific section removed as requested.
-
-```markdown
 # Enterprise NestJS Discord Framework
 
 Architectural framework for building scalable Discord applications using NestJS. Implements Dependency Injection, Event-Driven Architecture, and Distributed Configuration Management on top of the Node.js and TypeScript ecosystem.
@@ -186,6 +183,5 @@ src/
 │   └── _logger/            # Logging System
 └── modules/                # Domain Modules (Business Logic)
     ├── economy/
-    └── moderation/
-```
+    └── moderations/
 ```
