@@ -1,4 +1,4 @@
-# Enterprise NestJS Discord Framework
+# NestJS Discord Framework
 
 Architectural framework for building scalable Discord applications using NestJS. Implements Dependency Injection, Event-Driven Architecture, and Distributed Configuration Management on top of the Node.js and TypeScript ecosystem.
 
