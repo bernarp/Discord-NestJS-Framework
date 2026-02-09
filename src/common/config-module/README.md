@@ -1,95 +1,91 @@
 # Distributed Configuration Engine (DCE)
 
-The Distributed Configuration Engine provides a decentralized, type-safe, and reactive configuration management system. It implements a multi-stage loading pipeline governed by the Single Responsibility Principle (SRP) to ensure data integrity and system stability.
+The Distributed Configuration Engine provides a type-safe, reactive, and layered configuration management system. It separates framework-level defaults from user-level overrides to ensure stable and predictable state across different environments.
 
-## Architectural Architecture
+## Layered File System
 
-The module utilizes a **Pipeline Pattern** for configuration initialization, consisting of the following stages:
+The engine utilizes a specific directory structure to manage configuration snapshots. Every module registered via `@Config` must have a corresponding YAML file in the directories below.
 
-1.  **Source Retrieval**: Use `ConfigFileReader` to extract YAML data and `EnvProcessor` to parse environment variables.
-2.  **Structural Merging**: Apply `ConfigMerger` (deep merge) to combine framework defaults, user overrides, and ENV injections.
-3.  **Schema Validation**: Execute `ConfigValidator` to verify the resulting structure against the defined **Zod schema**.
-4.  **Immutable Storage**: Persist the validated snapshot in the `ConfigRepository`, where every object is **deeply frozen** to prevent runtime mutations.
+| Directory | Target Type | Access Mode | Purpose |
+| :--- | :--- | :--- | :--- |
+| `config_df/` | **Defaults** | Read-Only (Bundled) | Stores base configuration snapshots. These files define the structural contract and default values for each module. Tracked by VCS. |
+| `config_mrg/` | **Overrides** | Read-Write (Runtime) | Stores environment-specific overrides (Production, Stage, local). Values in this directory take priority over `config_df`. Ignored by VCS. |
 
-## Core Components
+### Merging Hierarchy
+The `ConfigOrchestrator` performs a deep recursive merge using the following priority (lowest to highest):
+1.  **Zod Schema Defaults**: Internal fallback if no files are present.
+2.  **`config_df/*.yaml`**: Project-wide baseline settings.
+3.  **`config_mrg/*.yaml`**: Local or environment-specific overrides.
+4.  **Environment Variables**: Temporary runtime injections (`APP__{MODULE_KEY}__{PROPERTY}`).
 
-### 1. Registry & Access (`ConfigService`)
-Acts as the primary orchestrator for configuration discovery and consumption. Use this service to retrieve snapshots or reactive proxies.
+---
 
-### 2. Pipeline Orchestrator (`ConfigOrchestrator`)
-Implements the `Read -> Merge -> Validate` workflow. Delegates specific operations to low-level loaders and validators.
+## API Reference
 
-### 3. Data Persistence (`ConfigRepository`)
-Encapsulates state management. Implements an in-memory storage with mandatory immutability enforcement via recursive `Object.freeze`.
+| Component / Method | Description |
+| :--- | :--- |
+| `ConfigService.get<T>(key)` | Returns a static, deeply frozen object snapshot. Use for one-time initialization. |
+| `ConfigService.getProxy<T>(key)` | Returns a reactive Proxy. References the latest snapshot in the `ConfigRepository`. Required for parameters that change without process restart. |
+| `ConfigService.reload(key)` | Manages the hot-reload lifecycle. Triggers re-reading, merging, and re-validating the configuration pipeline. |
+| `ConfigRepository` | Provides the underlying storage for snapshots. Implements mandatory recursive `Object.freeze` on all stored data. |
+| `ConfigOrchestrator` | Coordinates the `Read -> Merge -> Validate` pipeline. Segregates IO operations from logic and validation. |
 
-### 4. Dynamic Watcher (`ConfigWatcherService`)
-Monitors the filesystem for changes in specified directories and triggers the `reload` process via the service layer.
+---
 
-## Integration Workflow
+## Technical Integration
 
-### 1. Define Configuration Metadata
-Apply the `@Config` decorator to a class to register a module-specific configuration block. Provide a unique key and a Zod schema.
+### 1. Structure Definition
+Define the configuration key and Zod schema using the `@Config` decorator.
 
 ```typescript
-import { Config } from '@/common/decorators/config.decorator.js';
-import { z } from 'zod';
-
-const ModuleSchema = z.object({
-  port: z.number().default(3000),
-  host: z.string().default('localhost')
-});
-
 @Config({
-  key: 'module.name',
-  schema: ModuleSchema
+  key: 'module.database',
+  schema: z.object({
+    host: z.string().default('localhost'),
+    port: z.number().int().default(5432)
+  })
 })
-export class ModuleConfig {}
+export class DatabaseConfig {}
 ```
 
-### 2. Register with NestJS
-Include the configuration class in the `providers` array of your module. The engine's discovery mechanism will automatically identify and initialize it during boot.
+### 2. Module Discovery
+Register the configuration class in the NestJS module. The engine uses `DiscoveryService` to automatically link metadata to the `ConfigService` registry.
 
 ```typescript
 @Module({
-  providers: [ModuleConfig],
+  providers: [DatabaseConfig],
 })
-export class MyFeatureModule {}
+export class DatabaseModule {}
 ```
 
-## Consumption Patterns
+---
 
-### Reactive State (Proxy)
-Use `getProxy<T>(key)` for parameters requiring hot-reloading (e.g., timeouts, switches). The proxy always references the latest valid snapshot in the repository.
+## Consumption & Reactivity
 
-**Constraint:** Access properties directly through the proxy instance. Destructuring (`const { val } = proxy`) creates a static copy and breaks reactivity.
+### Reactive Proxy Pattern
+Utilize `getProxy<T>()` to allow real-time parameter updates from `config_mrg` or ENV without restarting the service.
 
 ```typescript
-const config = this.configService.getProxy<IMyConfig>(ConfigKey.MyFeature);
-this.logger.log(`Current value: ${config.port}`); // Always reflects latest state
+// Access latest values from the repository automatically
+const config = this.configService.getProxy<IDatabaseConfig>(ConfigKey.Module.Database);
+this.logger.debug(`Active Port: ${config.port}`);
 ```
 
-### Static State (Snapshot)
-Use `get<T>(key)` for one-time initialization where subsequent changes are not required.
+**⚠️ Immutable Guard:** All data is deeply frozen. Attempts to mutate properties will throw a `TypeError`. **Never destructure** a Proxy object, as this preserves a static snapshot and terminates the reactive link.
 
-## Type Generation & Safety
+---
 
-Maintain type safety by generating interfaces and key mappings from Zod schemas:
+## Environment Variable Injection
+The `EnvProcessor` maps flattened environment variables back to nested configuration objects.
+*   **Formula**: `APP__{MODULE_KEY}__{PATH_SEGMENTS}`
+*   **Example**: `APP__MODULE_DATABASE__OPTIONS__TIMEOUT` maps to `module.database.options.timeout`.
 
-1.  Update schemas in the code.
-2.  Execute the CLI tool: `npm run config:validate`.
-3.  Consume generated artifacts from `src/common/config-module/types/config.generated.ts` and the `ConfigKey` enum.
+---
 
-## Error Handling
+## Type Safety CLI
+To prevent magic string collisions and ensure full IntelliSense support, execute the validation tool after any schema modification:
 
-The module throws specific domain exceptions for diagnostic precision:
-*   `ConfigValidationException`: Indicates structural or type mismatches in configuration sources.
-*   `ConfigLoaderException`: Indicates IO failures or malformed source files.
-*   `ConfigNotFoundException`: Indicates access attempts to unregistered keys.
-
-## Configuration Hierarchy
-
-Value resolution priority (lowest to highest):
-1.  **Zod Schema Defaults** (Internal fallback).
-2.  **`config_df/*.yaml`** (Framework/Project defaults).
-3.  **`config_mrg/*.yaml`** (Environment-specific overrides).
-4.  **Environment Variables** (Runtime overrides: `APP__{KEY}__{PROP}`).
+```bash
+npm run config:validate
+```
+Generates typed mappings in: `src/common/config-module/types/config.generated.ts`.
