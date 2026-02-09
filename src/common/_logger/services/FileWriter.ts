@@ -83,7 +83,6 @@ export class FileWriter implements IFileWriter.IFileWriter, OnModuleInit, OnModu
 
     public async writeLogEntry(logEntry: ILogEntry): Promise<void> {
         await this.initialize();
-        if (process.env.APP_CLI_MODE === 'true') return;
 
         if (this._shouldBuffer()) {
             this._buffer.push(logEntry);
@@ -98,7 +97,6 @@ export class FileWriter implements IFileWriter.IFileWriter, OnModuleInit, OnModu
 
     public async writeLogEntries(logEntries: ILogEntry[]): Promise<void> {
         await this.initialize();
-        if (process.env.APP_CLI_MODE === 'true') return;
 
         const regularLogs: ILogEntry[] = [];
         const errorLogs: ILogEntry[] = [];
