@@ -41,8 +41,8 @@ Define the configuration key and Zod schema using the `@Config` decorator.
 @Config({
   key: 'module.database',
   schema: z.object({
-    host: z.string().default('localhost'),
-    port: z.number().int().default(5432)
+    host: z.string().default('localhost').describe('Database host address'),
+    port: z.number().int().default(5432).describe('Standard DB port')
   })
 })
 export class DatabaseConfig {}
@@ -82,10 +82,28 @@ The `EnvProcessor` maps flattened environment variables back to nested configura
 
 ---
 
-## Type Safety CLI
-To prevent magic string collisions and ensure full IntelliSense support, execute the validation tool after any schema modification:
+## Configuration Toolset (CLI)
 
+The engine includes a robust CLI tool for asset generation and validation, decoupled for maximum maintainability.
+
+### Features
+1.  **Type Generation**: Automatically creates TypeScript interfaces from Zod schemas to ensure full IntelliSense support.
+2.  **Skeleton Generation**: Creates commented `.yaml` files in `config_df/` based on schema descriptions.
+3.  **Validation**: Ensures that all registered modules have a valid schema and corresponding default files.
+
+### Commands
 ```bash
+# Full validation and asset generation
 npm run config:validate
 ```
-Generates typed mappings in: `src/common/config-module/types/config.generated.ts`.
+
+### Architecture
+The toolset is built on a decoupled provider-based architecture:
+*   **`SchemaAnalyzer`**: Deep unwrapping and analysis of complex Zod structures.
+*   **`TypeScriptGenerator`**: AST-based generation of types and nested key mappings.
+*   **`YamlGenerator`**: Recursive generation of YAML structures with multi-line comments.
+*   **`ConfigGeneratorService`**: High-level orchestrator managing I/O and pipeline execution.
+
+Assets are generated in:
+*   **Types**: `src/common/config-module/types/config.generated.ts`
+*   **Skeletons**: `config_df/*.yaml`

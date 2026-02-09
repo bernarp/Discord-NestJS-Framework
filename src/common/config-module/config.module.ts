@@ -2,11 +2,15 @@ import {DynamicModule, Module, Global, Provider, Inject} from '@nestjs/common';
 import {DiscoveryModule} from '@nestjs/core';
 import {ConfigService} from './services/config.service.js';
 import {ConfigWatcherService} from './services/config-watcher.service.js';
-import {ConfigOrchestrator} from './core/config-orchestrator.service.js';
-import {ConfigFileReader} from './loaders/file-reader.service.js';
-import {EnvProcessor} from './loaders/env-processor.service.js';
-import {ConfigValidator} from './validation/config-validator.service.js';
-import {ConfigRepository} from './core/config-repository.service.js';
+import {ConfigOrchestrator} from './services/config-orchestrator.service.js';
+import {ConfigFileReader} from './services/file-reader.service.js';
+import {EnvProcessor} from './services/env-processor.service.js';
+import {ConfigValidator} from './services/config-validator.service.js';
+import {ConfigRepository} from './services/config-repository.service.js';
+import {ConfigGeneratorService} from './services/config-generator.service.js';
+import {SchemaAnalyzer} from './services/schema-analyzer.service.js';
+import {TypeScriptGenerator} from './generators/typescript-generator.service.js';
+import {YamlGenerator} from './generators/yaml-generator.service.js';
 import {IConfigModuleOptions} from './interfaces/config-module-options.interface.js';
 import {CONFIG_DEFAULT_PATHS} from './constants/config.constants.js';
 import {
@@ -17,7 +21,11 @@ import {
     ICONFIG_FILE_READER_TOKEN,
     IENV_PROCESSOR_TOKEN,
     ICONFIG_VALIDATOR_TOKEN,
-    ICONFIG_REPOSITORY_TOKEN
+    ICONFIG_REPOSITORY_TOKEN,
+    ICONFIG_GENERATOR_TOKEN,
+    ISCHEMA_ANALYZER_TOKEN,
+    ITYPESCRIPT_GENERATOR_TOKEN,
+    IYAML_GENERATOR_TOKEN
 } from './config.token.js';
 
 /**
@@ -55,9 +63,25 @@ import {
         {
             provide: ICONFIG_LOADER_TOKEN,
             useClass: ConfigOrchestrator
+        },
+        {
+            provide: ISCHEMA_ANALYZER_TOKEN,
+            useClass: SchemaAnalyzer
+        },
+        {
+            provide: ITYPESCRIPT_GENERATOR_TOKEN,
+            useClass: TypeScriptGenerator
+        },
+        {
+            provide: IYAML_GENERATOR_TOKEN,
+            useClass: YamlGenerator
+        },
+        {
+            provide: ICONFIG_GENERATOR_TOKEN,
+            useClass: ConfigGeneratorService
         }
     ],
-    exports: [ICONFIG_SERVICE_TOKEN, ICONFIG_WATCHER_TOKEN]
+    exports: [ICONFIG_SERVICE_TOKEN, ICONFIG_WATCHER_TOKEN, ICONFIG_GENERATOR_TOKEN]
 })
 export class ConfigModule {
     constructor(@Inject(ICONFIG_WATCHER_TOKEN) private readonly _watcher: ConfigWatcherService) {}

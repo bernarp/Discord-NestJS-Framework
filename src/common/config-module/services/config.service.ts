@@ -80,11 +80,7 @@ export class ConfigService implements IConfigService, OnModuleInit {
             get: (_, prop) => {
                 const latest = self._repository.get(key);
                 if (!latest) return undefined;
-
                 const value = (latest.value as any)[prop];
-
-                // If the reached value is an object, we could potentially wrap it in another proxy
-                // for deep reactivity, but per Lead Dev requirement, simple property proxying from latest snapshot is sufficient.
                 return value;
             },
             set: () => {
@@ -105,19 +101,15 @@ export class ConfigService implements IConfigService, OnModuleInit {
             this._logger.warn(`Attempted to reload non-registered config: [${key}]`, ConfigContext.SERVICE);
             return;
         }
-
         const oldSnapshot = this._repository.get(key);
         try {
             const newValue = await this._orchestrator.load(metadata);
-
             const newSnapshot: IConfigSnapshot = {
                 value: newValue,
                 version: (oldSnapshot?.version ?? 0) + 1,
                 updatedAt: new Date()
             };
-
             this._repository.save(key, newSnapshot);
-
             return new ConfigUpdatedEvent({
                 key,
                 value: newValue,
@@ -130,6 +122,13 @@ export class ConfigService implements IConfigService, OnModuleInit {
     }
 
     /**
+     * Returns the internal registry of all discovered config modules.
+     */
+    public getRegistry(): Map<TConfigKey, IConfigMetadata> {
+        return this._metadataRegistry;
+    }
+
+    /**
      * Internal discovery mechanism to find and initialize all configurations.
      * @private
      */
@@ -139,7 +138,6 @@ export class ConfigService implements IConfigService, OnModuleInit {
         for (const wrapper of providers) {
             const {metatype} = wrapper;
             if (!metatype) continue;
-
             const metadata: IConfigMetadata = Reflect.getMetadata(CONFIG_METADATA_KEY, metatype);
             if (metadata) {
                 await this._registerConfig(metatype, metadata);
@@ -167,16 +165,13 @@ export class ConfigService implements IConfigService, OnModuleInit {
             this._logger.warn(`Duplicate configuration key detected: [${key}]. Skipping second registration.`, ConfigContext.SERVICE);
             return;
         }
-
         try {
             const value = await this._orchestrator.load(metadata);
-
             this._repository.save(key, {
                 value,
                 version: 1,
                 updatedAt: new Date()
             });
-
             this._metadataRegistry.set(key, {...metadata, target});
         } catch (error: any) {
             this._logger.error(`Failed to initialize configuration for [${key}]. Error: ${error.message}`, undefined, ConfigContext.SERVICE);

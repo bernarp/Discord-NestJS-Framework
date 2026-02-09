@@ -4,6 +4,7 @@ import type {IConfigValidator} from '../interfaces/config-validator.interface.js
 import {ConfigValidationException} from '../exceptions/config-validation.exception.js';
 import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
 import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
+import {ConfigContext} from '../constants/config.constants.js';
 
 /**
  * Service responsible for validating configuration data using Zod schemas.
@@ -27,7 +28,10 @@ export class ConfigValidator implements IConfigValidator {
         const result = schema.safeParse(data);
         if (!result.success) {
             const errors = result.error.issues.map(e => `[${e.path.join('.')}] ${e.message}`).join(', ');
-
+            if (process.env.APP_CLI_MODE === 'true') {
+                this._logger.warn(`[CLI Bypass] Validation failed for [${key}], but continuing generation...`, ConfigContext.SERVICE);
+                return (data || {}) as T;
+            }
             this._logger.error(`Configuration validation failed for [${key}]: ${errors}`);
             throw new ConfigValidationException(key, errors);
         }

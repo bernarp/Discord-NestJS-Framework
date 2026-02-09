@@ -42,3 +42,23 @@ export const ICONFIG_VALIDATOR_TOKEN = 'ICONFIG_VALIDATOR_TOKEN';
  * DI Token for the configuration repository.
  */
 export const ICONFIG_REPOSITORY_TOKEN = 'ICONFIG_REPOSITORY_TOKEN';
+
+/**
+ * DI Token for the configuration generator.
+ */
+export const ICONFIG_GENERATOR_TOKEN = 'ICONFIG_GENERATOR_TOKEN';
+
+/**
+ * DI Token for the schema analyzer.
+ */
+export const ISCHEMA_ANALYZER_TOKEN = 'ISCHEMA_ANALYZER_TOKEN';
+
+/**
+ * DI Token for the TypeScript content generator.
+ */
+export const ITYPESCRIPT_GENERATOR_TOKEN = 'ITYPESCRIPT_GENERATOR_TOKEN';
+
+/**
+ * DI Token for the YAML skeleton generator.
+ */
+export const IYAML_GENERATOR_TOKEN = 'IYAML_GENERATOR_TOKEN';

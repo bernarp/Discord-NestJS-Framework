@@ -15,6 +15,7 @@ import {ListenersModule} from './modules/template/template.module.js';
 import {TemplateTestEvents1Module} from './modules/template-test-events1/template-test-events1.module.js';
 import {TemplateTestEvents2Module} from './modules/template-test-events2/template-test-events2.module.js';
 import {UIModule} from './client/ui/ui.module.js';
+import {DeepTestConfigModule} from './deep-test-config.module.js';
 
 /**
  * Root Application Module.
@@ -31,6 +32,7 @@ import {UIModule} from './client/ui/ui.module.js';
             hotReload: true
         }),
         TestConfigModule,
+        DeepTestConfigModule,
         ClientModule,
         UIModule,
         LoggerModule,

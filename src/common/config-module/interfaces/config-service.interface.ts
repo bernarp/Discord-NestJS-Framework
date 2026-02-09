@@ -1,6 +1,7 @@
 import {OnModuleInit} from '@nestjs/common';
 import {TConfigKey, IConfigSnapshot} from '../types/config.types.js';
 import {ConfigUpdatedEvent} from '../events/config-updated.event.js';
+import {IConfigMetadata} from './config-options.interface.js';
 
 /**
  * Interface for the Centralized Configuration Service.
@@ -29,4 +30,9 @@ export interface IConfigService extends OnModuleInit {
      * @param key - The config key to reload.
      */
     reload(key: string): Promise<ConfigUpdatedEvent | void>;
+
+    /**
+     * Returns the internal registry of all discovered config modules.
+     */
+    getRegistry(): Map<TConfigKey, IConfigMetadata>;
 }

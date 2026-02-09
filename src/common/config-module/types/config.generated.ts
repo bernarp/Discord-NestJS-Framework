@@ -11,7 +11,24 @@ export type ModuleDiscordLoggingInteractionConfig = {
     };
 };
 
-export type AppConfigKey = 'module.discord.logging.interaction';
+export type ModuleDeepTestConfig = {
+    /** The name of the microservice */
+    serviceName: string;
+    database: {
+        host: string;
+        /** Standard DB port */
+        port: number;
+        options: {
+            ssl: boolean;
+            /** Connection pool size */
+            pool: number;
+        };
+    };
+    /** List of deployment tags */
+    tags: string[];
+};
+
+export type AppConfigKey = 'module.discord.logging.interaction' | 'module.deep.test';
 
 export const ConfigKey = {
     Module: {
@@ -19,6 +36,9 @@ export const ConfigKey = {
             Logging: {
                 Interaction: 'module.discord.logging.interaction'
             }
+        },
+        Deep: {
+            Test: 'module.deep.test'
         }
     }
 } as const;

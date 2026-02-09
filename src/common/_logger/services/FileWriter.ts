@@ -51,14 +51,31 @@ export class FileWriter implements IFileWriter.IFileWriter, OnModuleInit, OnModu
                 return;
             }
             try {
-                const logsPath = this._configService.get<string>('LOGS_PATH');
+                let logsPath: string = LOGGER_CONFIG.PATHS.BASE_LOGS_DIR;
+                let maxFileSize: number = LOGGER_CONFIG.PERFORMANCE.MAX_FILE_SIZE;
+                let enableBuffering: boolean = LOGGER_CONFIG.DEFAULTS.ENABLE_BUFFERING;
+                let bufferSize: number = LOGGER_CONFIG.PERFORMANCE.DEFAULT_BUFFER_SIZE;
+
+                try {
+                    const configLogsPath = this._configService.get<string>('LOGS_PATH');
+                    if (configLogsPath) logsPath = configLogsPath;
+
+                    const configMaxFileSize = this._configService.get<number>('LOG_MAX_FILE_SIZE');
+                    if (configMaxFileSize) maxFileSize = configMaxFileSize;
+
+                    const configEnableBuffering = this._configService.get<boolean>('LOG_ENABLE_BUFFERING');
+                    if (configEnableBuffering !== undefined) enableBuffering = configEnableBuffering;
+
+                    const configBufferSize = this._configService.get<number>('LOG_BUFFER_SIZE');
+                    if (configBufferSize) bufferSize = configBufferSize;
+                } catch (e) {}
 
                 this._options = {
-                    baseLogsPath: logsPath || LOGGER_CONFIG.PATHS.BASE_LOGS_DIR,
+                    baseLogsPath: logsPath,
                     startupTimestamp: this._startupTimestamp,
-                    maxFileSize: this._configService.get<number>('LOG_MAX_FILE_SIZE') || LOGGER_CONFIG.PERFORMANCE.MAX_FILE_SIZE,
-                    enableBuffering: this._configService.get<boolean>('LOG_ENABLE_BUFFERING') ?? LOGGER_CONFIG.DEFAULTS.ENABLE_BUFFERING,
-                    bufferSize: this._configService.get<number>('LOG_BUFFER_SIZE') || LOGGER_CONFIG.PERFORMANCE.DEFAULT_BUFFER_SIZE
+                    maxFileSize: maxFileSize,
+                    enableBuffering: enableBuffering,
+                    bufferSize: bufferSize
                 };
 
                 this._logDirectory = this._buildLogDirectory();
@@ -191,6 +208,8 @@ export class FileWriter implements IFileWriter.IFileWriter, OnModuleInit, OnModu
      * Writes a single log entry to the file (JSON Lines format)
      */
     private async _writeLogEntryToFile(logEntry: ILogEntry): Promise<void> {
+        if (!this._logsFilePath || !this._errorsFilePath) return;
+
         try {
             const jsonContent = this._formatter.formatForFile(logEntry);
             const contentWithNewline = jsonContent + '\n';
@@ -222,7 +241,7 @@ export class FileWriter implements IFileWriter.IFileWriter, OnModuleInit, OnModu
     }
 
     private _shouldBuffer(): boolean {
-        return this._options.enableBuffering === true;
+        return this._options?.enableBuffering === true;
     }
 
     private async _flushBuffer(): Promise<void> {
