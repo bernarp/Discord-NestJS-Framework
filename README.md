@@ -1,104 +1,191 @@
-# NestJS Discord Bot Framework
+Here is the updated **README.md** in English, with the specific section removed as requested.
 
-Architecture-centric framework for building Discord applications using NestJS. Implements Event-Driven Architecture (EDA) and Registry patterns for modularity and traceability.
+```markdown
+# Enterprise NestJS Discord Framework
 
-## Core Principles
+Architectural framework for building scalable Discord applications using NestJS. Implements Dependency Injection, Event-Driven Architecture, and Distributed Configuration Management on top of the Node.js and TypeScript ecosystem.
 
-1.  **Module Decoupling:** Use `EventBusService` for inter-module communication. Prevent direct service dependencies between domain modules.
-2.  **Execution Traceability:** Propagate `correlationId` via `AsyncLocalStorage`. Maintain state across asynchronous boundaries including Event Bus and Loggers.
-3.  **Strict Inversion of Control:** Access all system components via DI Tokens. Define interfaces for all handlers and services.
+## Global Architecture
 
----
+The system follows the **Modular Monolith** principle. Cross-domain interaction occurs strictly via Dependency Injection (DI) and the Event Bus. Direct imports of controllers or services between domain modules are prohibited.
 
-## Technical Architecture
-
-### 1. Infrastructure Topology Verification
-The `TopologyBuilderService` executes during the bootstrap phase to validate the event-driven system integrity.
-- **Problem Solved:** Undetected broken event chains and orphan handlers.
-- **Behavior:** Scans `@Emits` and `@Subscribe` metadata. Generates a internal graph.
-- **Constraints:** Detects only metadata-defined events. Logic-based `EventEmitter` calls are not tracked.
-
-### 2. Interaction Registry (Open/Closed Principle)
-The `InteractionsManager` delivers events to specialized handlers registered via `IDISCORD_INTERACTION_HANDLERS_TOKEN` multi-providers.
-- **Extension:** Add new interaction types (Buttons, Modals, Menus) by implementing `IBaseHandler` and registering the provider. No modification to core delivery logic required.
-- **Conflict Resolution:** Handlers must implement `supports(interaction)` for targeted routing.
-
-### 3. Asynchronous Pipes Pipeline
-Data validation and transformation logic resides in the Pipes layer.
-- **Automated Transformation:** Resolves `number`, `boolean`, and `string` primitives based on method signatures via `design:paramtypes` reflection.
-- **Manual Validation:** Implement `IDiscordPipe` for complex checks (e.g., database entity existence).
-- **Execution:** Pipes execute asynchronously before the target method invocation. Throws `BotException` on failure.
-
-### 4. Contextual Logging
-The logger utilizes the current `RequestContext` to attach a unique `correlationId` to every entry. Ensure all asynchronous operations maintain the context to prevent trace fragmentation.
+### Core Patterns
+1.  **Strict Inversion of Control (IoC):** All components (Handlers, Services, Repositories) are registered in the NestJS DI container. Use tokens (e.g., `ICLIENT_TOKEN`) to inject interfaces rather than concrete implementations.
+2.  **Metadata-Driven Development:** Registration of commands, events, and configurations is performed declaratively via decorators (`@CommandSlash`, `@On`, `@Config`). Metadata scanning occurs during the Bootstrap phase.
+3.  **Traceability:** End-to-end logging is implemented via `AsyncLocalStorage`. Each incoming Interaction is assigned a unique `correlationId`, accessible across all processing layers.
 
 ---
 
-## Implementation Guide
+## Distributed Configuration Engine (DCE)
 
-### Command Definition
+The configuration subsystem implements a **Layered Loading** strategy with bottom-up merge priority. It ensures strong typing via Zod, startup validation (Fail-fast), and reactive parameter updates (Hot Reload).
 
-Integrate commands by implementing the `ICommand` interface and applying decorators for metadata and parameter resolution.
+### Merge Hierarchy
+Configuration is constructed through Deep Merge of three sources:
+
+1.  **Immutable Defaults (`config_df/*.yaml`)**: Base values shipped with source code. Defines the configuration contract. **Must be committed to VCS.**
+2.  **Mutable Overrides (`config_mrg/*.yaml`)**: Local overrides for specific environments. **Excluded from VCS.**
+3.  **Environment Variables (`process.env`)**: Orchestrator-level injections (Docker/K8s). Highest priority. Mapping format: `APP__{MODULE_KEY}__{PROPERTY}`.
+
+### Module Configuration Implementation
+
+#### 1. Schema Definition
+Define the configuration structure within the module using Zod. Inherit from `BaseConfigSchema` for standardization (enabled/debug flags).
+
+```typescript
+import { Config } from '@/common/decorators/config.decorator';
+import { z } from 'zod';
+
+const DatabaseConfigSchema = z.object({
+  host: z.string().default('localhost'),
+  poolSize: z.number().int().min(1).default(10),
+  options: z.object({
+    ssl: z.boolean().default(false)
+  }).default({}) // Default for nested objects is mandatory
+});
+
+@Config({
+  key: 'module.database',
+  schema: DatabaseConfigSchema
+})
+export class DatabaseConfigDefinition {}
+```
+
+#### 2. Artifact Generation
+Execute the built-in CLI tool to generate TypeScript interfaces and YAML skeletons. This guarantees synchronization between types and data files.
+
+```bash
+# Run configuration generator
+npm run config:validate
+```
+*   **Output:**
+    *   Updates `src/common/config-module/types/config.generated.ts`.
+    *   Generates/Updates `config_df/module.database.yaml`.
+
+#### 3. Consumption
+Use `ConfigService` to access data. Select the access pattern based on reactivity requirements.
+
+*   **Static Snapshot (Stateless):** For connection initialization.
+    ```typescript
+    const config = this.configService.get<DatabaseConfig>('module.database');
+    ```
+*   **Reactive Proxy (Stateful):** For runtime-mutable parameters (Feature Flags, Timeouts).
+    ```typescript
+    // Warning: Do not destructure the proxy object to maintain the reactive link
+    const proxy = this.configService.getProxy<DatabaseConfig>('module.database');
+    if (proxy.enabled) { ... }
+    ```
+
+---
+
+## Event Bus & Messaging
+
+Inter-module communication is implemented via `EventBusService`. This eliminates tight coupling between domains.
+
+### Event Publishing
+Create event classes inheriting from `BaseEvent`. Encapsulate the payload in a typed object.
+
+```typescript
+// 1. Event Definition
+export class UserLevelUpEvent extends BaseEvent<{ userId: string; newLevel: number }> {}
+
+// 2. Publication (in source service)
+await this.eventBus.publish(new UserLevelUpEvent({ userId: '123', newLevel: 5 }));
+```
+
+### Event Subscription
+Use the `@Subscribe` decorator in consumer services.
 
 ```typescript
 @Injectable()
-@CommandSlash({
-  name: 'economy',
-  description: 'Manage economy state',
-  registration: CommandRegistrationType.GUILD
-})
-export class EconomyCommand implements ICommand {
-  
-  @Ephemeral()
-  @Defer()
-  @SubCommand({ name: 'transfer', description: 'Modify balance' })
-  public async onTransfer(
-    @Option('target') recipient: User,
-    @Option('amount', ParseIntPipe) amount: number,
-    @CurrentUser() sender: User,
-    @Interaction() interaction: ChatInputCommandInteraction
-  ): Promise<void> {
-    // Parameters are validated and cast to Typescript types.
-    // correlationId is preserved in the current execution context.
-    
-    await interaction.editReply(`Operation complete: ${amount} transferred.`);
+export class AchievementService {
+  @Subscribe(Events.USER.LEVEL_UP)
+  async onLevelUp(event: UserLevelUpEvent): Promise<void> {
+    const { userId, newLevel } = event.payload;
+    // Achievement logic
   }
 }
 ```
 
 ---
 
-## Configuration and Deployment
+## Discord Interaction Layer
 
-### 1. Environment Requirements
-Define variables in the root `.env` file:
-```env
-DISCORD_TOKEN=EXACT_BOT_TOKEN
-CLIENT_ID=APPLICATION_ID
-GUILD_ID=DEV_GUILD_ID
-LOG_LEVEL=DEBUG | INFO | WARN | ERROR
+The Discord API interaction layer is abstracted from business logic. Use decorators to register handlers.
+
+### Slash Command Registration
+Implement the `ICommand` interface. Use `@CommandSlash`, `@SubCommand`, and `@Option` decorators to declaratively describe the command structure. The framework automatically generates the JSON schema for the Discord API based on TypeScript metadata.
+
+```typescript
+@Injectable()
+@CommandSlash({
+  name: 'moderation',
+  description: 'Moderation toolset',
+  registration: CommandRegistrationType.GUILD
+})
+export class ModerationCommand implements ICommand {
+  @SubCommand({ name: 'ban', description: 'Ban a user' })
+  async execute(
+    @Option({ name: 'target', description: 'User to ban' }) target: User,
+    @Option({ name: 'reason', required: false }) reason: string = 'No reason'
+  ): Promise<void> {
+    // Implementation
+  }
+}
 ```
 
-### 2. Execution Flow
-Install dependencies and initiate the development or production lifecycle:
-```bash
-# Setup
-npm install
+### UI Composition (Components V2)
+Use `AdvancedComponentFactory` to build interfaces. Apply the **Composite** pattern to assemble complex UI elements from atomic widgets. Avoid manually creating JSON objects for Embeds or Components.
 
-# Development
-npm run start:dev
-
-# Production
-npm run build
-npm run start:prod
+```typescript
+const { container } = this.uiFactory.createContainer()
+  .setColor(Colors.Red)
+  .addHeading('System Alert', 1)
+  .addFields([{ key: 'Status', value: 'Critical' }])
+  .addActionRowComponents(this.createControlButtons())
+  .build();
 ```
 
-## Project Structure
+---
 
+## Logging & Observability
+
+The logging system (`LoggerModule`) is integrated with DI and the request context.
+
+*   **Usage:** Inject `ILogger` via the `LOG.LOGGER` token.
+*   **Context:** The logger automatically enriches entries with metadata (`correlationId`, class, method) via `LogContextResolver`.
+*   **Levels:** Use semantic methods: `log`, `warn`, `error`, `debug`, `verbose`.
+
+```typescript
+try {
+  // ... dangerous operation
+} catch (error) {
+  // Automatically captures Stack Trace and Correlation ID
+  this.logger.error('Failed to process transaction', error);
+}
+```
+
+---
+
+## Development Workflow
+
+### Environment Initialization
+1.  **Install dependencies:** `npm install`
+2.  **Generate configurations:** `npm run config:validate`
+3.  **Start in dev mode:** `npm run start:dev`
+
+### Project Structure
 ```text
 src/
-├── client/             # Delivery Layer: Handlers, Registry, Pipes
-├── common/             # Infrastructure Layer: EventBus, Logger, Topology, Context
-├── modules/            # Domain Layer: Feature-specific business logic
-└── main.ts             # Application Bootstrap
+├── client/                 # Discord.js Adapter (Gateway, REST)
+│   ├── interactions/       # Command, button, modal handlers
+│   └── ui/                 # Component and widget factories
+├── common/                 # Shared Kernel
+│   ├── config-module/      # Configuration Engine
+│   ├── event-bus/          # Event Bus
+│   └── _logger/            # Logging System
+└── modules/                # Domain Modules (Business Logic)
+    ├── economy/
+    └── moderation/
+```
 ```
