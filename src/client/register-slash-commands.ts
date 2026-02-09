@@ -43,6 +43,11 @@ export class SlashCommandRegistrationService implements OnModuleInit {
      * NestJS Lifecycle Hook: Triggered after all modules are initialized.
      */
     public async onModuleInit(): Promise<void> {
+        if (process.env.APP_CLI_MODE === 'true') {
+            this._logger.log('CLI Mode detected: Skipping Discord Command Registration', 'SlashCommandRegistration');
+            return;
+        }
+
         await this.registerCommands();
     }
 

@@ -1,5 +1,7 @@
 import {Module} from '@nestjs/common';
-import {ConfigModule} from '@nestjs/config';
+import {ConfigModule as NestConfigModule} from '@nestjs/config';
+import {ConfigModule} from './common/config-module/config.module.js';
+import {TestConfigModule} from './test-config.module.js';
 import {APP_FILTER} from '@nestjs/core';
 import {discordConfig} from '@common/config-env/index.js';
 import {ClientModule} from './client/client.module.js';
@@ -20,11 +22,15 @@ import {UIModule} from './client/ui/ui.module.js';
  */
 @Module({
     imports: [
-        ConfigModule.forRoot({
+        NestConfigModule.forRoot({
             isGlobal: true,
             load: [discordConfig],
             envFilePath: '.env'
         }),
+        ConfigModule.forRoot({
+            hotReload: true
+        }),
+        TestConfigModule,
         ClientModule,
         UIModule,
         LoggerModule,

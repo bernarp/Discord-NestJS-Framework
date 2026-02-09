@@ -39,7 +39,7 @@ export class ConfigService implements IConfigService {
      * NestJS Lifecycle Hook: Discovers all @Config decorated classes and loads their data.
      */
     public async onModuleInit(): Promise<void> {
-        this._logger.log('Initializing Distributed Configuration Engine...');
+        this._logger.log('Initializing Distributed Configuration Engine...', ConfigContext.SERVICE);
         await this._discoverAndLoadConfigs();
     }
 
@@ -131,8 +131,10 @@ export class ConfigService implements IConfigService {
             }
         }
         for (const module of this._modulesContainer.values()) {
+            this._logger.debug(`Checking module: ${module.metatype.name}`, ConfigContext.SERVICE);
             const metadata: IConfigMetadata = Reflect.getMetadata(CONFIG_METADATA_KEY, module.metatype);
             if (metadata) {
+                this._logger.debug(`Found @Config on module: ${module.metatype.name}`, ConfigContext.SERVICE);
                 await this._registerConfig(module.metatype, metadata);
             }
         }

@@ -5,7 +5,7 @@ export const CONFIG_DEFAULT_PATHS = {
     DEFAULTS: './config_df',
     OVERRIDES: './config_mrg',
     ENV_PREFIX: 'APP__',
-    GENERATED_TYPES: 'src/common/config-module/types/config.generated.d.ts'
+    GENERATED_TYPES: 'src/common/config-module/types/config.generated.ts'
 } as const;
 
 /**

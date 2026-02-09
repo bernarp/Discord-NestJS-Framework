@@ -68,6 +68,11 @@ export class BotClient implements IClient, OnModuleInit, OnModuleDestroy {
      * NestJS Lifecycle Hook: Initializes the bot and establishes a connection to the Discord Gateway.
      */
     public async onModuleInit(): Promise<void> {
+        if (process.env.APP_CLI_MODE === 'true') {
+            this._logger.log('CLI Mode detected: Skipping Discord Gateway connection', 'BotClient');
+            return;
+        }
+
         this._registerBaseEvents();
         this._registerInteractionHandler();
         await this.start();
