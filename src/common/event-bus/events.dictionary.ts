@@ -27,7 +27,8 @@ export const Events = {
      */
     SYSTEM: {
         ERROR: 'system.error',
-        WARNING: 'system.warning'
+        WARNING: 'system.warning',
+        CONFIG_UPDATED: 'system.config_updated'
     },
 
     /**

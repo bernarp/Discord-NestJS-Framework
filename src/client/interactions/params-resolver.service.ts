@@ -11,6 +11,7 @@ import {ParseBoolPipe} from '../../common/pipes/parse-bool.pipe.js';
 import {LogMethod, LogLevel} from '@/common/decorators/log-method.decorator.js';
 import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
 import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
+import {EDAContext} from '@/common/event-bus/eda-context.holder.js';
 
 /**
  * Service responsible for resolving method arguments based on custom Discord decorators.
@@ -121,6 +122,9 @@ export class ParamsResolverService {
 
             case DiscordParamType.OPTION:
                 return this._getOptionValue(param.data!, interaction, metatype);
+
+            case DiscordParamType.REQUEST_CONTEXT:
+                return EDAContext.getRequestContext().getContext();
 
             default:
                 return undefined;

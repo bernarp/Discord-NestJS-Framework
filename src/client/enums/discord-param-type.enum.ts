@@ -21,5 +21,8 @@ export enum DiscordParamType {
     CURRENT_GUILD = '5',
 
     /** Injects the Discord client instance. */
-    CLIENT = '6'
+    CLIENT = '6',
+
+    /** Injects the current request context (AsyncLocalStorage). */
+    REQUEST_CONTEXT = '7'
 }

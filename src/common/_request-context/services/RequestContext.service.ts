@@ -37,6 +37,14 @@ export class RequestContextService {
     }
 
     /**
+     * Retrieves the full Request Context object.
+     * @returns The context object or undefined if not running.
+     */
+    public getContext(): IRequestContext | undefined {
+        return this._als.getStore();
+    }
+
+    /**
      * Sets a specific property in the current context.
      * Note: This only works if a context is already running.
      * @param key - The property key.
