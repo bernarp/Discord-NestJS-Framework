@@ -14,6 +14,8 @@ Use these tokens to inject dependencies. Do not import concrete classes directly
 | `IMODAL_HANDLER_TOKEN`       | `IModalHandler`         | Modal submission registration.                          |
 | `ISELECT_MENU_HANDLER_TOKEN` | `ISelectMenuHandler`    | Select menu interaction registration.                   |
 | `IDISCORD_EVENT_MANAGER_TOKEN`| `IDiscordEventManager`  | Discord gateway event subscription management.          |
+| `IPREFIX_COMMAND_DISPATCHER_TOKEN` | `IPrefixCommandDispatcher` | Message-based command dispatching.                      |
+| `IPREFIX_COMMAND_REGISTRY_TOKEN`   | `IPrefixCommandRegistry`   | Registry of prefix command handlers.                     |
 
 ## Slash Commands Implementation
 
@@ -30,6 +32,7 @@ Implement the `ICommand` interface and use the `@CommandSlash` decorator. Metada
 | `@CurrentGuild()` | Injects the `Guild` object where the command was used. |
 | `@Client()` | Injects the `Client` instance of the bot. |
 | `@Interaction()` | Injects the raw `Interaction` object. |
+| `@Ctx()` | Alias for `@Interaction()`. Recommended for cross-platform (Slash/Prefix) context injection. |
 
 #### Declarative Option Discovery
 The framework uses **Reflection** and **Metadata Scraping** to automatically register slash command options. You no longer need to manually define the `options` array in `@SubCommand`.
@@ -146,6 +149,60 @@ export class ModerationCommand implements ICommand {
         @Interaction() interaction: ChatInputCommandInteraction
     ): Promise<void> {
         // Logic here...
+    }
+}
+```
+
+## Prefix Commands Implementation
+
+The framework supports legacy message-based commands (e.g., `!ping`) with the same advanced features as slash commands: parameter injection, pipes, and unified context.
+
+### Decorators
+
+| Decorator | Description |
+| :--- | :--- |
+| `@PrefixCommand(options)` | Marks a class as a prefix command handler. Options: `name`, `aliases`. |
+| `@PrefixSubCommand(options)` | Marks a method as a subcommand (e.g., `!ban @User`). |
+
+### Unified Context (`IPrefixContext`)
+
+Prefix commands receive an `IPrefixContext` which provides a similar API to Discord's `BaseInteraction`. You can use `reply()`, `deferReply()`, `editReply()`, and access the original `message`, `client`, `user`, etc.
+
+### Example
+
+```typescript
+import {Injectable} from '@nestjs/common';
+import {GuildMember} from 'discord.js';
+import {
+    PrefixCommand,
+    PrefixSubCommand,
+    Option,
+    Ctx,
+    IPrefixContext
+} from '@/common/decorators/index.js';
+
+@Injectable()
+@PrefixCommand({
+    name: 'admin',
+    aliases: ['a']
+})
+export class AdminPrefixCommand {
+    /**
+     * Arguments are mapped by position based on @Option decorators.
+     * Command: !admin ban @User spam
+     */
+    @PrefixSubCommand({
+        name: 'ban',
+        description: 'Ban a member'
+    })
+    public async onBan(
+        @Option('member') member: GuildMember,
+        @Option('reason') reason: string,
+        @Ctx() ctx: IPrefixContext
+    ): Promise<void> {
+        await ctx.deferReply();
+        // Logic...
+        await ctx.editReply(`Banned ${member.user.tag} for: ${reason}`);
     }
 }
 ```

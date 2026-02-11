@@ -17,5 +17,6 @@ export * from './on.decorator.js';
 export * from './once.decorator.js';
 export * from './defer.decorator.js';
 export * from './ephemeral.decorator.js';
+export * from './request-context.decorator.js';
 export * from './ctx.decorator.js';
 export * from './config.decorator.js';
