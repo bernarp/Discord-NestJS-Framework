@@ -8,6 +8,7 @@ import {Events} from '@/common/event-bus/events.dictionary.js';
 import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
 import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
 import {DiscordErrorContext} from '@client/enums/index.js';
+import {LogClass} from '@/common/decorators/log-class.decorator.js';
 import {SystemErrorEvent} from '../events/system-error.event.js';
 import {ClientReadyEvent} from '../events/client-ready.event.js';
 
@@ -15,6 +16,7 @@ import {ClientReadyEvent} from '../events/client-ready.event.js';
  * Service for monitoring Discord Gateway events and reporting errors/readiness.
  * Centralizes technical logging and system-wide event bubbling.
  */
+@LogClass()
 @Injectable()
 export class GatewayMonitorService implements IGatewayMonitor, OnModuleInit {
     /**

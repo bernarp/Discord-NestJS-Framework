@@ -1,5 +1,5 @@
 import {GatewayIntentBits, Partials, ClientOptions} from 'discord.js';
-import {DISCORD_CLIENT_OPTIONS} from '@client/client.js';
+import {DISCORD_CLIENT_OPTIONS} from '@/client/client.token.js';
 import {Provider} from '@nestjs/common';
 
 /**

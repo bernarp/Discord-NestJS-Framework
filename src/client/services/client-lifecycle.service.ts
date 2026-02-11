@@ -1,4 +1,5 @@
 import {Inject, Injectable, OnModuleDestroy, OnModuleInit} from '@nestjs/common';
+import * as discord from 'discord.js';
 import type {ConfigType} from '@nestjs/config';
 import {discordConfig} from '@common/config-env/index.js';
 import {ICLIENT_TOKEN} from '@/client/client.token.js';
@@ -7,10 +8,12 @@ import type {IClientLifecycle} from '@/client/interfaces/client-lifecycle.interf
 import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
 import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
 import {Client} from '@/common/decorators/client.decorator.js';
+import {LogClass} from '@/common/decorators/log-class.decorator.js';
 
 /**
  * Service responsible for managing the Discord Client connection lifecycle.
  */
+@LogClass()
 @Injectable()
 export class ClientLifecycleService implements IClientLifecycle, OnModuleInit, OnModuleDestroy {
     private _isReady: boolean = false;
@@ -31,8 +34,7 @@ export class ClientLifecycleService implements IClientLifecycle, OnModuleInit, O
             return;
         }
 
-        // We listen for ready/disconnect to update our internal ready state
-        this._client.instance.once('ready', () => {
+        this._client.instance.once(discord.Events.ClientReady, () => {
             this._isReady = true;
         });
 

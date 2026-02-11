@@ -5,11 +5,13 @@ import {IClientPresence} from '@/client/interfaces/client-presence.interface.js'
 import {DiscordActivityType, DiscordPresenceStatus} from '@client/enums/index.js';
 import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
 import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
+import {LogClass} from '@/common/decorators/log-class.decorator.js';
 
 /**
  * Service for managing bot presence and activity.
  * Isolated from the main client lifecycle for better decomposition.
  */
+@LogClass()
 @Injectable()
 export class ClientPresenceService implements IClientPresence {
     /**

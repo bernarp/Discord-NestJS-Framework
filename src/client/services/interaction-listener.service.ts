@@ -7,11 +7,15 @@ import {IInteractionListener} from '@/client/interfaces/interaction-listener.int
 import {InteractionsManager} from '../interactions-manager.js';
 import {RequestContextService} from '@/common/_request-context/services/RequestContext.service.js';
 import {randomUUID} from 'crypto';
+import {LogClass} from '@/common/decorators/log-class.decorator.js';
+import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
+import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
 
 /**
  * Service that listens for and orbits interaction events.
  * Wraps every interaction in a RequestContext for logging and correlation.
  */
+@LogClass()
 @Injectable()
 export class InteractionListenerService implements IInteractionListener, OnModuleInit {
     /**
@@ -22,7 +26,8 @@ export class InteractionListenerService implements IInteractionListener, OnModul
     constructor(
         @Client() private readonly _client: IClient,
         @Inject(IINTERACTIONS_MANAGER_TOKEN) private readonly _interactionsManager: InteractionsManager,
-        private readonly _requestContext: RequestContextService
+        private readonly _requestContext: RequestContextService,
+        @Inject(LOG.LOGGER) private readonly _logger: ILogger
     ) {}
 
     /**
