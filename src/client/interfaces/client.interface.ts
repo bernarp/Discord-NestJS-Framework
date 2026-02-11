@@ -9,6 +9,11 @@ import {DiscordActivityType, DiscordPresenceStatus} from '@client/enums/index.js
  */
 export interface IClient {
     /**
+     * Access the raw Discord.js client instance.
+     */
+    readonly instance: import('discord.js').Client;
+
+    /**
      * Returns true if the client is ready and logged in.
      */
     readonly isReady: boolean;

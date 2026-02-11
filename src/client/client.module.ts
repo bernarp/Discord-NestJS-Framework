@@ -11,7 +11,11 @@ import {
     IMODAL_HANDLER_TOKEN,
     IINTERACTIONS_MANAGER_TOKEN,
     IDISCORD_EVENT_MANAGER_TOKEN,
-    IDISCORD_INTERACTION_HANDLERS_TOKEN
+    IDISCORD_INTERACTION_HANDLERS_TOKEN,
+    ICLIENT_LIFECYCLE_TOKEN,
+    ICLIENT_PRESENCE_TOKEN,
+    IGATEWAY_MONITOR_TOKEN,
+    IINTERACTION_LISTENER_TOKEN
 } from '@/client/client.token.js';
 
 import {InteractionsManager} from './interactions-manager.js';
@@ -23,6 +27,10 @@ import {SlashCommandRegistrationService} from './register-slash-commands.js';
 import {ParamsResolverService} from './interactions/params-resolver.service.js';
 import {DiscordEventManager} from './services/discord-event-manager.service.js';
 import {DiscordEventDiscoveryService} from './services/discord-event-discovery.service.js';
+import {ClientLifecycleService} from './services/client-lifecycle.service.js';
+import {ClientPresenceService} from './services/client-presence.service.js';
+import {GatewayMonitorService} from './services/gateway-monitor.service.js';
+import {InteractionListenerService} from './services/interaction-listener.service.js';
 
 /**
  * Global module responsible for managing the Discord Client lifecycle.
@@ -43,9 +51,29 @@ import {DiscordEventDiscoveryService} from './services/discord-event-discovery.s
         ParamsResolverService,
         DiscordEventManager,
         DiscordEventDiscoveryService,
+        ClientLifecycleService,
+        ClientPresenceService,
+        GatewayMonitorService,
+        InteractionListenerService,
         {
             provide: ICLIENT_TOKEN,
             useExisting: BotClient
+        },
+        {
+            provide: ICLIENT_LIFECYCLE_TOKEN,
+            useExisting: ClientLifecycleService
+        },
+        {
+            provide: ICLIENT_PRESENCE_TOKEN,
+            useExisting: ClientPresenceService
+        },
+        {
+            provide: IGATEWAY_MONITOR_TOKEN,
+            useExisting: GatewayMonitorService
+        },
+        {
+            provide: IINTERACTION_LISTENER_TOKEN,
+            useExisting: InteractionListenerService
         },
         {
             provide: IINTERACTIONS_MANAGER_TOKEN,
@@ -97,7 +125,11 @@ import {DiscordEventDiscoveryService} from './services/discord-event-discovery.s
         ICOMMAND_HANDLER_TOKEN,
         IBUTTON_HANDLER_TOKEN,
         ISELECT_MENU_HANDLER_TOKEN,
-        IMODAL_HANDLER_TOKEN
+        IMODAL_HANDLER_TOKEN,
+        ICLIENT_LIFECYCLE_TOKEN,
+        ICLIENT_PRESENCE_TOKEN,
+        IGATEWAY_MONITOR_TOKEN,
+        IINTERACTION_LISTENER_TOKEN
     ]
 })
 export class ClientModule {}
