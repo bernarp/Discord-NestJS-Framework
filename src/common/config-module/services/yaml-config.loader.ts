@@ -77,7 +77,6 @@ export class YamlConfigLoader implements IConfigLoader {
      */
     public async reload<T>(key: string): Promise<T | null> {
         this._logger.warn(`Reloading [${key}] is not fully implemented yet (Waiting for Tier 3 Watcher)`);
-        // Currently just re-runs the full load if we track metadata
         return null;
     }
 

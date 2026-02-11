@@ -1,7 +1,7 @@
-import {Injectable, Inject} from '@nestjs/common';
+import {Injectable} from '@nestjs/common';
 import {ClientEvents} from 'discord.js';
+import {Client} from '@/common/decorators/client.decorator.js';
 import {IDiscordEventManager} from '../interfaces/discord-event-manager.interface.js';
-import {ICLIENT_TOKEN} from '../client.token.js';
 import type {IClient} from '../interfaces/client.interface.js';
 
 /**
@@ -13,7 +13,7 @@ export class DiscordEventManager implements IDiscordEventManager {
     /**
      * @param _client - The low-level Discord client wrapper.
      */
-    constructor(@Inject(ICLIENT_TOKEN) private readonly _client: IClient) {}
+    constructor(@Client() private readonly _client: IClient) {}
 
     /**
      * Proxies the event registration to the BotClient.
