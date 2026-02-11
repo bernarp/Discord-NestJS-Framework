@@ -12,6 +12,7 @@ import {LogMethod, LogLevel} from '@/common/decorators/log-method.decorator.js';
 import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
 import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
 import {EDAContext} from '@/common/event-bus/eda-context.holder.js';
+import {IPrefixContext} from '../interfaces/prefix-context.interface.js';
 
 /**
  * Service responsible for resolving method arguments based on custom Discord decorators.
@@ -25,30 +26,25 @@ export class ParamsResolverService {
      * Resolves arguments for a specific method execution based on interaction data.
      * @param target - The object instance containing the method.
      * @param methodName - The name of the method to resolve parameters for.
-     * @param interaction - The current Discord interaction.
+     * @param interaction - The current Discord interaction or prefix context.
      * @returns Array of resolved arguments in correct order.
      */
     @LogMethod({level: LogLevel.DEBUG, description: 'Resolve method arguments'})
-    public async resolveArguments(target: object, methodName: string, interaction: BaseInteraction): Promise<any[]> {
+    public async resolveArguments(target: object, methodName: string, interaction: BaseInteraction | IPrefixContext): Promise<any[]> {
         const metadata: IParamMetadata[] = Reflect.getMetadata(DISCORD_PARAMS_METADATA, target.constructor, methodName) || [];
-
         if (metadata.length === 0) {
             return [interaction];
         }
-
         const paramTypes: Type<any>[] = Reflect.getMetadata('design:paramtypes', target, methodName) || [];
-
         const args: any[] = [];
         for (const param of metadata) {
             const metatype = paramTypes[param.index];
             const rawValue = this._resolveRawValue(param, interaction, metatype);
-
             const argumentMetadata: IArgumentMetadata = {
                 type: param.type,
                 metatype: metatype,
                 data: param.data
             };
-
             args[param.index] = await this._applyPipes(rawValue, param, argumentMetadata);
         }
 
@@ -60,15 +56,12 @@ export class ParamsResolverService {
      */
     private async _applyPipes(value: any, param: IParamMetadata, metadata: IArgumentMetadata): Promise<any> {
         let result = value;
-
         if ((!param.pipes || param.pipes.length === 0) && param.type === DiscordParamType.OPTION) {
             result = this._applyAutomaticTransformation(result, metadata);
         }
-
         if (param.pipes && param.pipes.length > 0) {
             for (const pipe of param.pipes) {
                 const pipeInstance = typeof pipe === 'function' ? new (pipe as Type<IDiscordPipe>)() : pipe;
-
                 result = await pipeInstance.transform(result, metadata);
             }
         }
@@ -97,7 +90,7 @@ export class ParamsResolverService {
     /**
      * Extracts specific raw value from interaction based on param type.
      */
-    private _resolveRawValue(param: IParamMetadata, interaction: BaseInteraction, metatype?: Type<any>): any {
+    private _resolveRawValue(param: IParamMetadata, interaction: BaseInteraction | IPrefixContext, metatype?: Type<any>): any {
         switch (param.type) {
             case DiscordParamType.INTERACTION:
                 return interaction;
@@ -134,28 +127,45 @@ export class ParamsResolverService {
     /**
      * Safely retrieves option value from interaction with smart type resolution.
      */
-    private _getOptionValue(name: string, interaction: BaseInteraction, metatype?: Type<any>): any {
+    private _getOptionValue(name: string, interaction: BaseInteraction | IPrefixContext, metatype?: Type<any>): any {
+        if (this._isPrefixContext(interaction)) {
+            const options = interaction.options;
+
+            if (metatype) {
+                if (metatype === User) return options.getUser(name);
+                if (metatype === GuildMember) return options.getMember(name);
+                if (metatype === Role) return options.getRole(name);
+                if (metatype === BaseChannel || (metatype.prototype && metatype.prototype instanceof BaseChannel)) {
+                    return options.getChannel(name);
+                }
+            }
+
+            return options.getString(name);
+        }
         if (!(interaction instanceof ChatInputCommandInteraction) && !(interaction instanceof AutocompleteInteraction)) {
             return undefined;
         }
-
         if (interaction.isAutocomplete()) {
             return interaction.options.get(name)?.value;
         }
-
         const options = interaction.options;
-
         if (metatype) {
             if (metatype === User) return options.getUser(name);
             if (metatype === GuildMember) return options.getMember(name);
             if (metatype === Role) return options.getRole(name);
             if (metatype === Attachment) return options.getAttachment(name);
-
             if (metatype === BaseChannel || (metatype.prototype && metatype.prototype instanceof BaseChannel)) {
                 return options.getChannel(name);
             }
         }
 
         return options.get(name)?.value;
+    }
+
+    /**
+     * Type guard to check if the given interaction is a Prefix Context.
+     */
+    private _isPrefixContext(interaction: BaseInteraction | IPrefixContext): interaction is IPrefixContext {
+        return !(interaction instanceof BaseInteraction);
     }
 }

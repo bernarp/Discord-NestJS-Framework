@@ -15,10 +15,14 @@ import {
     ICLIENT_LIFECYCLE_TOKEN,
     ICLIENT_PRESENCE_TOKEN,
     IGATEWAY_MONITOR_TOKEN,
-    IINTERACTION_LISTENER_TOKEN
+    IINTERACTION_LISTENER_TOKEN,
+    IPREFIX_COMMAND_REGISTRY_TOKEN,
+    IPREFIX_COMMAND_DISPATCHER_TOKEN
 } from '@/client/client.token.js';
 
 import {InteractionsManager} from './interactions-manager.js';
+import {PrefixCommandRegistry} from './services/prefix-command-registry.service.js';
+import {PrefixCommandDiscoveryService} from './services/prefix-command-discovery.service.js';
 import {CommandInteractionHandler} from './interactions/command-interaction.handler.js';
 import {ButtonInteractionHandler} from './interactions/button-interaction.handler.js';
 import {SelectMenuInteractionHandler} from './interactions/select-menu-interaction.handler.js';
@@ -31,6 +35,7 @@ import {ClientLifecycleService} from './services/client-lifecycle.service.js';
 import {ClientPresenceService} from './services/client-presence.service.js';
 import {GatewayMonitorService} from './services/gateway-monitor.service.js';
 import {InteractionListenerService} from './services/interaction-listener.service.js';
+import {PrefixCommandDispatcherService} from './services/prefix-command-dispatcher.service.js';
 
 /**
  * Global module responsible for managing the Discord Client lifecycle.
@@ -55,6 +60,17 @@ import {InteractionListenerService} from './services/interaction-listener.servic
         ClientPresenceService,
         GatewayMonitorService,
         InteractionListenerService,
+        PrefixCommandRegistry,
+        PrefixCommandDiscoveryService,
+        PrefixCommandDispatcherService,
+        {
+            provide: IPREFIX_COMMAND_REGISTRY_TOKEN,
+            useExisting: PrefixCommandRegistry
+        },
+        {
+            provide: IPREFIX_COMMAND_DISPATCHER_TOKEN,
+            useExisting: PrefixCommandDispatcherService
+        },
         {
             provide: ICLIENT_TOKEN,
             useExisting: BotClient
@@ -83,7 +99,6 @@ import {InteractionListenerService} from './services/interaction-listener.servic
             provide: IDISCORD_EVENT_MANAGER_TOKEN,
             useExisting: DiscordEventManager
         },
-        // Individual handler tokens for direct injection where needed (e.g. Discovery Services)
         {
             provide: ICOMMAND_HANDLER_TOKEN,
             useExisting: CommandInteractionHandler
@@ -100,7 +115,6 @@ import {InteractionListenerService} from './services/interaction-listener.servic
             provide: IMODAL_HANDLER_TOKEN,
             useExisting: ModalInteractionHandler
         },
-        // Primary Registry: Collective interaction handlers array
         {
             provide: IDISCORD_INTERACTION_HANDLERS_TOKEN,
             useFactory: (
@@ -129,7 +143,9 @@ import {InteractionListenerService} from './services/interaction-listener.servic
         ICLIENT_LIFECYCLE_TOKEN,
         ICLIENT_PRESENCE_TOKEN,
         IGATEWAY_MONITOR_TOKEN,
-        IINTERACTION_LISTENER_TOKEN
+        IINTERACTION_LISTENER_TOKEN,
+        IPREFIX_COMMAND_REGISTRY_TOKEN,
+        IPREFIX_COMMAND_DISPATCHER_TOKEN
     ]
 })
 export class ClientModule {}

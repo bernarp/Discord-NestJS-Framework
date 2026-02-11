@@ -6,3 +6,5 @@ export const DISCORD_PARAMS_METADATA = Symbol('discord:params');
 export const DISCORD_EVENT_METADATA = Symbol('discord:event');
 export const DEFER_METADATA = Symbol('discord:defer');
 export const EPHEMERAL_METADATA = Symbol('discord:ephemeral');
+export const PREFIX_COMMAND_METADATA = Symbol('discord:prefix_command');
+export const PREFIX_SUBCOMMAND_METADATA = Symbol('discord:prefix_subcommand');
