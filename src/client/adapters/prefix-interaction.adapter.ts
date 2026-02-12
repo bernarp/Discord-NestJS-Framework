@@ -64,7 +64,6 @@ export class PrefixInteractionAdapter implements IPrefixContext {
     /** @inheritdoc */
     public async deferReply(options?: {ephemeral?: boolean}): Promise<void> {
         if (this._isDeferred) return;
-
         await this.channel?.sendTyping();
         this._isDeferred = true;
     }

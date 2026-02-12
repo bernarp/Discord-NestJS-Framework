@@ -1,16 +1,13 @@
 import {Injectable, Inject} from '@nestjs/common';
 import * as discord from 'discord.js';
 import {On} from '@/common/decorators/index.js';
-import {IPrefixCommandRegistry, IPrefixContext, IPrefixCommandDispatcher, IResolvedPrefixCommand} from '../interfaces/index.js';
-import type {IPrefixCommandRegistry as IPrefixCommandRegistryType, IPrefixCommandDispatcher as IPrefixCommandDispatcherType} from '../interfaces/index.js';
+import type {IPrefixCommandRegistry, IPrefixContext, IPrefixCommandDispatcher, IResolvedPrefixCommand} from '../interfaces/index.js';
 import {IPREFIX_COMMAND_REGISTRY_TOKEN} from '../client.token.js';
 import {PrefixInteractionAdapter} from '../adapters/index.js';
 import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
-import type {ILogger as ILoggerType} from '@/common/_logger/interfaces/ICustomLogger.js';
+import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
 import {RequestContextService} from '@/common/_request-context/services/RequestContext.service.js';
-import type {RequestContextService as RequestContextServiceType} from '@/common/_request-context/services/RequestContext.service.js';
 import {ParamsResolverService} from '../interactions/params-resolver.service.js';
-import type {ParamsResolverService as ParamsResolverServiceType} from '../interactions/params-resolver.service.js';
 import {LogClass} from '@/common/decorators/log-class.decorator.js';
 import {LogMethod, LogLevel} from '@/common/decorators/log-method.decorator.js';
 
@@ -20,14 +17,14 @@ import {LogMethod, LogLevel} from '@/common/decorators/log-method.decorator.js';
  */
 @LogClass({level: LogLevel.DEBUG})
 @Injectable()
-export class PrefixCommandDispatcherService implements IPrefixCommandDispatcherType {
+export class PrefixCommandDispatcherService implements IPrefixCommandDispatcher {
     private readonly _prefix = '!';
 
     constructor(
-        @Inject(IPREFIX_COMMAND_REGISTRY_TOKEN) private readonly _registry: IPrefixCommandRegistryType,
-        @Inject(LOG.LOGGER) private readonly _logger: ILoggerType,
-        private readonly _requestContext: RequestContextServiceType,
-        private readonly _paramsResolver: ParamsResolverServiceType
+        @Inject(IPREFIX_COMMAND_REGISTRY_TOKEN) private readonly _registry: IPrefixCommandRegistry,
+        @Inject(LOG.LOGGER) private readonly _logger: ILogger,
+        private readonly _requestContext: RequestContextService,
+        private readonly _paramsResolver: ParamsResolverService
     ) {}
 
     /** @inheritdoc */

@@ -1,15 +1,12 @@
 import {Injectable, OnModuleInit, Inject} from '@nestjs/common';
 import {DiscoveryService, MetadataScanner} from '@nestjs/core';
-import type {DiscoveryService as IDiscoveryService, MetadataScanner as IMetadataScanner} from '@nestjs/core';
 import {DISCORD_PARAMS_METADATA, PREFIX_COMMAND_METADATA, PREFIX_SUBCOMMAND_METADATA} from '@/common/decorators/keys.js';
 import {IPrefixCommandOptions, IPrefixSubCommandOptions} from '@/client/dto/index.js';
 import {DiscordParamType} from '@/client/enums/discord-param-type.enum.js';
-import {IPrefixCommandRegistry, IResolvedPrefixCommand, IParamMetadata} from '@/client/interfaces/index.js';
-import type {IPrefixCommandRegistry as IPrefixCommandRegistryType} from '@/client/interfaces/index.js';
+import type {IPrefixCommandRegistry, IResolvedPrefixCommand, IParamMetadata} from '@/client/interfaces/index.js';
 import {IPREFIX_COMMAND_REGISTRY_TOKEN} from '@/client/client.token.js';
 import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
 import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
-import type {ILogger as ILoggerType} from '@/common/_logger/interfaces/ICustomLogger.js';
 import {LogClass} from '@/common/decorators/log-class.decorator.js';
 import {LogMethod, LogLevel} from '@/common/decorators/log-method.decorator.js';
 
@@ -21,10 +18,10 @@ import {LogMethod, LogLevel} from '@/common/decorators/log-method.decorator.js';
 @Injectable()
 export class PrefixCommandDiscoveryService implements OnModuleInit {
     constructor(
-        private readonly _discovery: IDiscoveryService,
-        private readonly _metadataScanner: IMetadataScanner,
-        @Inject(IPREFIX_COMMAND_REGISTRY_TOKEN) private readonly _registry: IPrefixCommandRegistryType,
-        @Inject(LOG.LOGGER) private readonly _logger: ILoggerType
+        private readonly _discovery: DiscoveryService,
+        private readonly _metadataScanner: MetadataScanner,
+        @Inject(IPREFIX_COMMAND_REGISTRY_TOKEN) private readonly _registry: IPrefixCommandRegistry,
+        @Inject(LOG.LOGGER) private readonly _logger: ILogger
     ) {}
 
     /** @inheritdoc */

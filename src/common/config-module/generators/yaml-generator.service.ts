@@ -58,8 +58,7 @@ export class YamlGenerator implements IYamlGenerator {
                     result += this._generateYamlWithComments(fieldInner, indent + '  ');
                 } else if (fieldTypeName.includes(ZodTypeNames.ARRAY)) {
                     let itemType = 'unknown';
-                    const itemSchema = fieldDef.type instanceof Object && !Array.isArray(fieldDef.type) ? fieldDef.type : fieldDef.innerType || fieldDef.element;
-
+                    const itemSchema = fieldDef.element || fieldDef.innerType || (fieldDef.type instanceof Object && !Array.isArray(fieldDef.type) ? fieldDef.type : null);
                     if (itemSchema) {
                         const itemInner = this._analyzer.unwrap(itemSchema);
                         if (itemInner && itemInner._def) {
@@ -68,20 +67,70 @@ export class YamlGenerator implements IYamlGenerator {
                             itemType = String(rawType).toLowerCase().replace(/zod/g, '');
                         }
                     }
-                    result += `${indent}${key}: [] # List of <${itemType}>${description}\n`;
+                    const arrayBag = (fieldInner as any)?._zod?.bag;
+                    const arrayConstraints: string[] = [];
+                    if (arrayBag) {
+                        if (arrayBag.length !== undefined) {
+                            arrayConstraints.push(`len:${arrayBag.length}`);
+                        } else {
+                            if (arrayBag.minimum !== undefined) arrayConstraints.push(`min:${arrayBag.minimum}`);
+                            if (arrayBag.maximum !== undefined) arrayConstraints.push(`max:${arrayBag.maximum}`);
+                        }
+                    }
+                    const arrayConstraintStr = arrayConstraints.length > 0 ? ` [${arrayConstraints.join(', ')}]` : '';
+                    result += `${indent}${key}: [] # List of <${itemType}>${arrayConstraintStr}${description}\n`;
                 } else {
                     let example = 'null';
                     const typeStr = fieldTypeName.replace(/zod/g, '');
+                    const constraints: string[] = [];
+                    const bag = (fieldInner as any)?._zod?.bag;
+                    if (bag) {
+                        const isSafeInt = bag.format === 'safeint';
+                        if (bag.length !== undefined) {
+                            constraints.push(`len:${bag.length}`);
+                        } else {
+                            if (bag.minimum !== undefined && !(isSafeInt && Math.abs(bag.minimum) > 1e15)) {
+                                constraints.push(`min:${bag.minimum}`);
+                            }
+                            if (bag.maximum !== undefined && !(isSafeInt && Math.abs(bag.maximum) > 1e15)) {
+                                constraints.push(`max:${bag.maximum}`);
+                            }
+                        }
+                        if (bag.exclusiveMinimum !== undefined) constraints.push(`>${bag.exclusiveMinimum}`);
+                        if (bag.exclusiveMaximum !== undefined) constraints.push(`<${bag.exclusiveMaximum}`);
+                        if (bag.multipleOf !== undefined) constraints.push(`step:${bag.multipleOf}`);
+                        if (bag.format && bag.format !== 'safeint') {
+                            constraints.push(bag.format);
+                        } else if (isSafeInt) {
+                            constraints.push('int');
+                        }
+                    }
+                    if (constraints.length === 0) {
+                        const checks = fieldDef.checks;
+                        if (Array.isArray(checks)) {
+                            for (const check of checks) {
+                                if (check.kind) {
+                                    const value = check.value !== undefined ? `:${check.value}` : '';
+                                    constraints.push(`${check.kind}${value}`);
+                                }
+                            }
+                        }
+                    }
+
+                    const constraintStr = constraints.length > 0 ? ` [${constraints.join(', ')}]` : '';
+                    const typeComment = `<${typeStr}${constraintStr}>`;
+                    const cleanDescription = description ? description.replace(/^ # /, '') : '';
 
                     if (typeStr.includes(ZodTypeNames.STRING)) example = '""';
                     else if (typeStr.includes(ZodTypeNames.NUMBER)) example = '0';
                     else if (typeStr.includes(ZodTypeNames.BOOLEAN)) example = 'false';
                     else if (typeStr.includes(ZodTypeNames.ENUM)) {
-                        const values = fieldDef.values ? Object.values(fieldDef.values).join('|') : 'enum';
+                        const enumSource = fieldDef.entries || fieldDef.values;
+                        const values = enumSource ? Object.values(enumSource).join(' | ') : 'enum';
                         example = `"" # One of: [${values}]`;
                     }
 
-                    result += `${indent}${key}: ${example} ${description ? description : `# <${typeStr}>`}\n`;
+                    result += `${indent}${key}: ${example} # ${typeComment}${cleanDescription ? ` | ${cleanDescription}` : ''}\n`;
                 }
             }
             return result;

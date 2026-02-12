@@ -12,6 +12,9 @@ combine.ts
 combine.py
 combine2
 builder.ts
+debug-zod.cjs
+debug-zod2.cjs
+debug-zod3.cjs
 
 package-lock.json
 xenon-bastion-457821-k3-97abf377076a.json

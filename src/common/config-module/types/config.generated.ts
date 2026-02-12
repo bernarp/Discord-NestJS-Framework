@@ -6,6 +6,18 @@
 export type ModuleDiscordLoggingInteractionConfig = {
     enabled: boolean;
     retryCount: number;
+    /** Request timeout in ms */
+    timeout: number;
+    batchSize: number;
+    /** System API Key */
+    apiKey?: string | undefined;
+    endpoint: string;
+    /** Primary admin contact */
+    adminEmail: string;
+    /** Correlation trace ID */
+    traceId?: string | undefined;
+    logLevel: 'debug' | 'info' | 'warn' | 'error';
+    tags: string[];
     nested: {
         value: string;
     };
