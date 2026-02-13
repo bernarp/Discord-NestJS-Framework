@@ -42,6 +42,15 @@ export class YamlGenerator implements IYamlGenerator {
 
             if (!shape) return '';
 
+            interface YamlLine {
+                keyPart: string;
+                commentPart: string;
+                subObject?: string;
+            }
+
+            const lines: YamlLine[] = [];
+            let maxKeyWidth = 0;
+
             for (const key in shape) {
                 const field = shape[key];
                 if (!field) continue;
@@ -51,11 +60,16 @@ export class YamlGenerator implements IYamlGenerator {
 
                 const fieldDef = fieldInner._def;
                 const fieldTypeName = (fieldDef.typeName || fieldDef.type || 'unknown').toLowerCase();
-                const description = field.description ? ` # ${field.description}` : '';
+                const description = field.description || '';
 
                 if (fieldTypeName.includes(ZodTypeNames.OBJECT)) {
-                    result += `${indent}${key}:${description}\n`;
-                    result += this._generateYamlWithComments(fieldInner, indent + '  ');
+                    const keyPart = `${indent}${key}:`;
+                    maxKeyWidth = Math.max(maxKeyWidth, keyPart.length);
+                    lines.push({
+                        keyPart,
+                        commentPart: description,
+                        subObject: this._generateYamlWithComments(fieldInner, indent + '  ')
+                    });
                 } else if (fieldTypeName.includes(ZodTypeNames.ARRAY)) {
                     let itemType = 'unknown';
                     const itemSchema = fieldDef.element || fieldDef.innerType || (fieldDef.type instanceof Object && !Array.isArray(fieldDef.type) ? fieldDef.type : null);
@@ -78,7 +92,10 @@ export class YamlGenerator implements IYamlGenerator {
                         }
                     }
                     const arrayConstraintStr = arrayConstraints.length > 0 ? ` [${arrayConstraints.join(', ')}]` : '';
-                    result += `${indent}${key}: [] # List of <${itemType}>${arrayConstraintStr}${description}\n`;
+                    const keyPart = `${indent}${key}: []`;
+                    const commentPart = `List of <${itemType}>${arrayConstraintStr}${description ? ` | ${description}` : ''}`;
+                    maxKeyWidth = Math.max(maxKeyWidth, keyPart.length);
+                    lines.push({keyPart, commentPart});
                 } else {
                     let example = 'null';
                     const typeStr = fieldTypeName.replace(/zod/g, '');
@@ -118,19 +135,39 @@ export class YamlGenerator implements IYamlGenerator {
                     }
 
                     const constraintStr = constraints.length > 0 ? ` [${constraints.join(', ')}]` : '';
-                    const typeComment = `<${typeStr}${constraintStr}>`;
-                    const cleanDescription = description ? description.replace(/^ # /, '') : '';
+                    let typeComment = `<${typeStr}${constraintStr}>`;
+                    let cleanDescription = description;
 
                     if (typeStr.includes(ZodTypeNames.STRING)) example = '""';
                     else if (typeStr.includes(ZodTypeNames.NUMBER)) example = '0';
                     else if (typeStr.includes(ZodTypeNames.BOOLEAN)) example = 'false';
                     else if (typeStr.includes(ZodTypeNames.ENUM)) {
+                        example = '""';
                         const enumSource = fieldDef.entries || fieldDef.values;
                         const values = enumSource ? Object.values(enumSource).join(' | ') : 'enum';
-                        example = `"" # One of: [${values}]`;
+                        typeComment = `<${typeStr}${constraintStr}> | One of: [${values}]`;
                     }
 
-                    result += `${indent}${key}: ${example} # ${typeComment}${cleanDescription ? ` | ${cleanDescription}` : ''}\n`;
+                    const keyPart = `${indent}${key}: ${example}`;
+                    const commentPart = `${typeComment}${cleanDescription ? ` | ${cleanDescription}` : ''}`;
+                    maxKeyWidth = Math.max(maxKeyWidth, keyPart.length);
+                    lines.push({keyPart, commentPart});
+                }
+            }
+
+            // Target column for comments is maxKeyWidth + 2 spaces padding
+            const targetCol = maxKeyWidth + 2;
+
+            for (const line of lines) {
+                if (line.commentPart) {
+                    const padding = ' '.repeat(Math.max(0, targetCol - line.keyPart.length));
+                    result += `${line.keyPart}${padding}# ${line.commentPart}\n`;
+                } else {
+                    result += `${line.keyPart}\n`;
+                }
+
+                if (line.subObject) {
+                    result += line.subObject;
                 }
             }
             return result;

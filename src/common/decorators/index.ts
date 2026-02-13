@@ -20,3 +20,5 @@ export * from './ephemeral.decorator.js';
 export * from './request-context.decorator.js';
 export * from './ctx.decorator.js';
 export * from './config.decorator.js';
+export * from './prefix-command.decorator.js';
+export * from './prefix-sub-command.decorator.js';

@@ -56,6 +56,22 @@ export class GatewayMonitorService implements IGatewayMonitor, OnModuleInit {
             this._eventBus.emit(Events.SYSTEM.ERROR, new SystemErrorEvent(new Error(message), DiscordErrorContext.GatewayWarning));
         });
 
+        client.on(discord.Events.Debug, info => {
+            this._logger.debug(`Gateway Debug: ${info.replace(/\n/g, ' ')}`, 'GatewayMonitor');
+        });
+
+        client.on(discord.Events.ShardDisconnect, (event, id) => {
+            this._logger.warn(`Shard ${id} disconnected: ${event.reason}`, 'GatewayMonitor');
+        });
+
+        client.on(discord.Events.ShardReconnecting, id => {
+            this._logger.debug(`Shard ${id} reconnecting...`, 'GatewayMonitor');
+        });
+
+        client.on(discord.Events.ShardResume, (id, replayedEvents) => {
+            this._logger.debug(`Shard ${id} resumed. Replayed ${replayedEvents} events.`, 'GatewayMonitor');
+        });
+
         client.rest.on('rateLimited', info => {
             const message = `Rate limited on [${info.method} ${info.route}]. Limit: ${info.limit}, Expiry: ${info.timeToReset}ms`;
             this._logger.warn(message);

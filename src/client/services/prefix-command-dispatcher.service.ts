@@ -15,7 +15,6 @@ import {LogMethod, LogLevel} from '@/common/decorators/log-method.decorator.js';
  * Service responsible for dispatching message-based commands.
  * Listens to messageCreate event and routes to the appropriate handler.
  */
-@LogClass({level: LogLevel.DEBUG})
 @Injectable()
 export class PrefixCommandDispatcherService implements IPrefixCommandDispatcher {
     private readonly _prefix = '!';
@@ -25,7 +24,9 @@ export class PrefixCommandDispatcherService implements IPrefixCommandDispatcher 
         @Inject(LOG.LOGGER) private readonly _logger: ILogger,
         private readonly _requestContext: RequestContextService,
         private readonly _paramsResolver: ParamsResolverService
-    ) {}
+    ) {
+        this._logger.debug('PrefixCommandDispatcherService initialized', 'PrefixDispatcher');
+    }
 
     /** @inheritdoc */
     @On(discord.Events.MessageCreate)
@@ -39,11 +40,14 @@ export class PrefixCommandDispatcherService implements IPrefixCommandDispatcher 
         if (!commandTrigger) return;
         const resolved = this._registry.getCommand(commandTrigger);
         if (!resolved) return;
+
+        this._logger.debug(`Executing: ${commandTrigger} | User: ${message.author.tag} | Channel: #${(message.channel as any).name || 'DM'} | CID: ${correlationId}`, 'PrefixDispatcher');
+
         try {
             await this._executeCommand(message, resolved, args, correlationId);
         } catch (error) {
             const err = error as Error;
-            this._logger.error(`Failed to execute prefix command [${commandTrigger}]: ${err.message}`, err.stack);
+            this._logger.error(`Failed to execute prefix command: ${commandTrigger} | Error: ${err.message}`, err.stack);
             if (message.channel && 'send' in message.channel) {
                 await message.reply('An error occurred while executing this command.');
             }
@@ -62,6 +66,7 @@ export class PrefixCommandDispatcherService implements IPrefixCommandDispatcher 
                 const subCommandName = firstArg.toLowerCase();
                 const subResolved = resolved.subCommands.get(subCommandName);
                 if (subResolved) {
+                    this._logger.debug(`Subcommand resolved: ${subCommandName}`, 'PrefixDispatcher');
                     target = subResolved;
                     finalArgs.shift();
                 }
@@ -71,7 +76,9 @@ export class PrefixCommandDispatcherService implements IPrefixCommandDispatcher 
         const methodName = target.methodName;
         const instance = target.instance;
         if (instance && methodName && typeof (instance as any)[methodName] === 'function') {
+            this._logger.debug(`Resolving arguments for ${instance.constructor.name}.${methodName}`, 'PrefixDispatcher');
             const resolvedArgs = await this._paramsResolver.resolveArguments(instance, methodName, ctx);
+            this._logger.debug(`Arguments resolved, executing handler...`, 'PrefixDispatcher');
             await (instance as any)[methodName](...resolvedArgs);
         } else {
             this._logger.error(`Method ${methodName} not found on instance of ${instance?.constructor?.name || 'unknown'}`);

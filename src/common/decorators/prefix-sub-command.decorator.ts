@@ -1,4 +1,3 @@
-import {SetMetadata} from '@nestjs/common';
 import {PREFIX_SUBCOMMAND_METADATA} from './keys.js';
 import {IPrefixSubCommandOptions} from '@/client/dto/index.js';
 
@@ -7,7 +6,7 @@ import {IPrefixSubCommandOptions} from '@/client/dto/index.js';
  */
 export function PrefixSubCommand(options: IPrefixSubCommandOptions): MethodDecorator {
     return (target: any, key: string | symbol, descriptor: PropertyDescriptor) => {
-        SetMetadata(PREFIX_SUBCOMMAND_METADATA, options)(target, key, descriptor);
+        Reflect.defineMetadata(PREFIX_SUBCOMMAND_METADATA, options, target.constructor, key);
         return descriptor;
     };
 }

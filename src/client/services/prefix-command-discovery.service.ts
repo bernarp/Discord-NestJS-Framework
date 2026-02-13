@@ -7,14 +7,12 @@ import type {IPrefixCommandRegistry, IResolvedPrefixCommand, IParamMetadata} fro
 import {IPREFIX_COMMAND_REGISTRY_TOKEN} from '@/client/client.token.js';
 import {LOG} from '@/common/_logger/constants/LoggerConfig.js';
 import type {ILogger} from '@/common/_logger/interfaces/ICustomLogger.js';
-import {LogClass} from '@/common/decorators/log-class.decorator.js';
 import {LogMethod, LogLevel} from '@/common/decorators/log-method.decorator.js';
 
 /**
  * Service responsible for discovering and registering prefix commands.
  * Scans all providers for @PrefixCommand and @PrefixSubCommand decorators.
  */
-@LogClass({level: LogLevel.DEBUG})
 @Injectable()
 export class PrefixCommandDiscoveryService implements OnModuleInit {
     constructor(
@@ -25,6 +23,7 @@ export class PrefixCommandDiscoveryService implements OnModuleInit {
     ) {}
 
     /** @inheritdoc */
+    @LogMethod({level: LogLevel.DEBUG, logInput: false})
     public onModuleInit(): void {
         this.discoverCommands();
     }
@@ -39,6 +38,7 @@ export class PrefixCommandDiscoveryService implements OnModuleInit {
             if (!instance || typeof instance !== 'object') continue;
             const commandOptions: IPrefixCommandOptions = Reflect.getMetadata(PREFIX_COMMAND_METADATA, instance.constructor);
             if (commandOptions) {
+                this._logger.debug(`Found @PrefixCommand decorator on ${instance.constructor.name}, resolving...`, 'PrefixDiscovery');
                 this._registerResolvedCommand(instance, commandOptions);
             }
         }
@@ -54,7 +54,9 @@ export class PrefixCommandDiscoveryService implements OnModuleInit {
         this._metadataScanner.scanFromPrototype(instance, prototype, (methodName: string) => {
             const subMeta: IPrefixSubCommandOptions = Reflect.getMetadata(PREFIX_SUBCOMMAND_METADATA, instance.constructor, methodName);
             if (subMeta) {
+                this._logger.debug(`Found @PrefixSubCommand decorator on method ${methodName} for command ${options.name}`, 'PrefixDiscovery');
                 const paramMap = this._discoverParams(instance, methodName);
+                this._logger.debug(`Discovered ${paramMap.size} parameters for subcommand ${subMeta.name}`, 'PrefixDiscovery');
                 subCommands.set(subMeta.name.toLowerCase(), {
                     options: subMeta as any,
                     instance,
@@ -65,6 +67,8 @@ export class PrefixCommandDiscoveryService implements OnModuleInit {
             }
         });
         const mainParamMap = this._discoverParams(instance, 'execute');
+        this._logger.debug(`Discovered ${mainParamMap.size} parameters for main command ${options.name}`, 'PrefixDiscovery');
+        this._logger.debug(`Registering command: ${options.name} with implementer: ${instance.constructor.name}`, 'PrefixDiscovery');
         this._registry.register({
             options,
             instance,
@@ -73,7 +77,7 @@ export class PrefixCommandDiscoveryService implements OnModuleInit {
             paramMap: mainParamMap
         });
 
-        this._logger.debug(`Discovered prefix command: ${options.name} (${subCommands.size} subcommands)`);
+        this._logger.debug(`Discovered prefix command: ${options.name} (${subCommands.size} subcommands)`, 'PrefixDiscovery');
     }
 
     /**

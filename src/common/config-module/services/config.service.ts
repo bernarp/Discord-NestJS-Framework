@@ -158,7 +158,7 @@ export class ConfigService implements IConfigService, OnModuleInit {
      * Registers and loads a specific configuration block via Orchestrator.
      * @private
      */
-    @LogMethod({description: 'Register Config Module', level: LogLevel.DEBUG})
+    @LogMethod({description: 'Register Config Module', level: LogLevel.DEBUG, logInput: false})
     private async _registerConfig(target: any, metadata: IConfigMetadata): Promise<void> {
         const {key} = metadata;
         if (this._repository.has(key)) {

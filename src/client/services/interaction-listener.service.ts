@@ -41,6 +41,7 @@ export class InteractionListenerService implements IInteractionListener, OnModul
     public init(): void {
         this._client.instance.on(discord.Events.InteractionCreate, (interaction: discord.Interaction) => {
             const correlationId = randomUUID();
+            this._logger.debug(`Raw interaction received: ${interaction.id} | CID: ${correlationId}`, 'InteractionListener');
             this._requestContext.run({correlationId}, () => {
                 this._interactionsManager.handleInteraction(interaction);
             });

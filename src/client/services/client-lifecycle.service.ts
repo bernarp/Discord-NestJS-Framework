@@ -38,10 +38,12 @@ export class ClientLifecycleService implements IClientLifecycle, OnModuleInit, O
             this._isReady = true;
         });
 
-        this._client.instance.on('shardDisconnect', () => {
+        this._client.instance.on('shardDisconnect', (event, id) => {
+            this._logger.debug(`Shard ${id} disconnected from Gateway (isReady: false)`, 'Lifecycle');
             this._isReady = false;
         });
 
+        this._logger.debug('Initiating login process...', 'Lifecycle');
         await this.start();
     }
 

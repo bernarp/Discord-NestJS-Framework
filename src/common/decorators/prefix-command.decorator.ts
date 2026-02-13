@@ -1,4 +1,3 @@
-import {SetMetadata} from '@nestjs/common';
 import {PREFIX_COMMAND_METADATA} from './keys.js';
 import {IPrefixCommandOptions} from '@/client/dto/index.js';
 
@@ -7,6 +6,6 @@ import {IPrefixCommandOptions} from '@/client/dto/index.js';
  */
 export function PrefixCommand(options: IPrefixCommandOptions): ClassDecorator {
     return (target: any) => {
-        SetMetadata(PREFIX_COMMAND_METADATA, options)(target);
+        Reflect.defineMetadata(PREFIX_COMMAND_METADATA, options, target);
     };
 }

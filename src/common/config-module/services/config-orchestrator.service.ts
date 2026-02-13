@@ -52,7 +52,7 @@ export class ConfigOrchestrator implements IConfigLoader {
      * @throws {ConfigLoaderException} If an unexpected error occurs during the pipeline.
      * @throws {ConfigValidationException} If the merged configuration is invalid.
      */
-    @LogMethod({description: 'Config Pipeline Execution', level: LogLevel.DEBUG})
+    @LogMethod({description: 'Config Pipeline Execution', level: LogLevel.DEBUG, logInput: false})
     public async load<T>(metadata: IConfigMetadata<T>): Promise<T> {
         const {key, schema} = metadata;
 

@@ -34,15 +34,21 @@ export class DiscordEventDiscoveryService implements OnModuleInit {
      */
     private discoverEvents(): void {
         const providers = this._discoveryService.getProviders();
+        const processedInstances = new Set<any>();
+
         providers
             .filter(wrapper => wrapper.instance && Object.getPrototypeOf(wrapper.instance))
             .forEach(wrapper => {
                 const {instance} = wrapper;
+                if (processedInstances.has(instance)) return;
+                processedInstances.add(instance);
+
                 const prototype = Object.getPrototypeOf(instance);
                 this._metadataScanner.scanFromPrototype(instance, prototype, methodName => {
                     const method = instance[methodName];
                     const metadata = this._reflector.get<IEventMetadata>(DISCORD_EVENT_METADATA, method);
                     if (!metadata) return;
+                    this._logger.debug(`Registering Discord event listener: ${metadata.event} -> ${instance.constructor.name}.${methodName}`, 'EventDiscovery');
                     const handler = method.bind(instance);
                     this._eventManager.register(metadata.event, handler, metadata.once);
                     this._logRegistration(metadata.event, `${instance.constructor.name}.${methodName}`, metadata.once);
@@ -53,10 +59,11 @@ export class DiscordEventDiscoveryService implements OnModuleInit {
     /**
      * Internal helper for logging event registration via decorator.
      */
-    @LogMethod({
-        level: LogLevel.DEBUG,
-        description: 'Discord Event Listener Bound',
-        logResult: false
-    })
+    // @LogMethod({
+    //     level: LogLevel.DEBUG,
+    //     description: 'Discord Event Listener Bound',
+    //     logInput: false,
+    //     logResult: false
+    // })
     private _logRegistration(event: string, target: string, once: boolean): void {}
 }

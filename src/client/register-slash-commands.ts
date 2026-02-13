@@ -102,8 +102,8 @@ export class SlashCommandRegistrationService implements OnModuleInit {
     @LogMethod({
         description: 'Upload commands to Discord API',
         level: LogLevel.DEBUG,
-        logInput: true,
-        logResult: true
+        logInput: false,
+        logResult: false
     })
     private async _uploadToDiscord(guildCommands: IDiscordCommandRegistrationDto[], globalCommands: IDiscordCommandRegistrationDto[]): Promise<void> {
         const {token, clientId, guildId} = this._config;
